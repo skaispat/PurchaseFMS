@@ -38,7 +38,7 @@ const GeneratePO = () => {
     transportingType: "Select",
     femPercent: "",
     yieldPercent: "",
-    erpNumber: "", // New field for ERP Number
+    poNumber: "", // Changed from erpNumber to poNumber
     paymentTerm: "", // New field for Payment Term
   })
 
@@ -127,7 +127,7 @@ const GeneratePO = () => {
             return {
               id: `po-${index + 7}`,
               timestamp: getCellValue(0), // Column A
-              erpPoNumber: getCellValue(1), // Column B
+              poNumber: getCellValue(1), // Column B - Changed from erpPoNumber to poNumber
               indentNumber: getCellValue(2), // Column C
               materialName: getCellValue(3), // Column D
               brokerName: getCellValue(4), // Column E
@@ -144,7 +144,7 @@ const GeneratePO = () => {
               paymentTerm: getCellValue(25), // Column Z - Payment Term
             }
           })
-          .filter((po) => po.erpPoNumber && po.erpPoNumber.trim() !== "")
+          .filter((po) => po.poNumber && po.poNumber.trim() !== "") // Changed from erpPoNumber to poNumber
 
         setPoHistory(processedPOs.reverse()) // Show latest first
 
@@ -204,7 +204,7 @@ const GeneratePO = () => {
 
     return poHistory.filter(
       (po) =>
-        po.erpPoNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        po.poNumber.toLowerCase().includes(searchTerm.toLowerCase()) || // Changed from erpPoNumber to poNumber
         po.indentNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
         po.materialName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         po.brokerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -212,7 +212,7 @@ const GeneratePO = () => {
         po.qty.toLowerCase().includes(searchTerm.toLowerCase()) ||
         po.rate.toLowerCase().includes(searchTerm.toLowerCase()) ||
         po.transportingType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        po.erpNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (po.erpNumber && po.erpNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (po.paymentTerm && po.paymentTerm.toLowerCase().includes(searchTerm.toLowerCase())),
     )
   }, [poHistory, searchTerm])
@@ -248,25 +248,6 @@ const GeneratePO = () => {
       ...formData,
       partyName: value,
     })
-  }
-
-  // Generate ERP PO Number
-  const generateErpPoNumber = async () => {
-    try {
-      // Get existing PO numbers to generate next number
-      const existingNumbers = poHistory
-        .map((po) => po.erpPoNumber)
-        .filter((num) => num && num.startsWith("PO-"))
-        .map((num) => Number.parseInt(num.replace("PO-", "")))
-        .filter((num) => !isNaN(num))
-
-      const maxNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) : 0
-      const nextNumber = maxNumber + 1
-      return `PO-${nextNumber.toString().padStart(3, "0")}`
-    } catch (error) {
-      console.error("Error generating ERP PO number:", error)
-      return `PO-${(poHistory.length + 1).toString().padStart(3, "0")}`
-    }
   }
 
   // Upload file to Google Drive
@@ -308,7 +289,7 @@ const GeneratePO = () => {
   }
 
   // Update Google Sheets
-  const updateSheets = async (dataToSubmit, erpPoNumber, fileUrl, haveToPOValue) => {
+  const updateSheets = async (dataToSubmit, fileUrl, haveToPOValue) => {
     try {
       // Generate timestamp
       const now = new Date()
@@ -327,7 +308,7 @@ const GeneratePO = () => {
       // Prepare PO sheet data
       const poRowData = [
         timestamp, // Column A
-        erpPoNumber, // Column B
+        dataToSubmit.poNumber || "", // Column B - Changed from erpPoNumber to poNumber (user input)
         dataToSubmit.indentNumber, // Column C
         dataToSubmit.materialName, // Column D
         dataToSubmit.brokerName, // Column E
@@ -350,7 +331,7 @@ const GeneratePO = () => {
         "", // Column V
         "", // Column W
         haveToPOValue, // Column X - Generate PO Status
-        dataToSubmit.erpNumber || "", // Column Y - ERP PO NO.
+        "", // Column Y - Empty now (was ERP PO NO.)
         dataToSubmit.paymentTerm || "", // Column Z - Payment Term
       ]
 
@@ -391,7 +372,7 @@ const GeneratePO = () => {
       transportingType: "Select",
       femPercent: "",
       yieldPercent: "",
-      erpNumber: "", // Reset ERP Number field
+      poNumber: "", // Changed from erpNumber to poNumber
       paymentTerm: "", // Reset Payment Term field
     })
     setErrors({})
@@ -415,7 +396,7 @@ const GeneratePO = () => {
       transportingType: "Select",
       femPercent: "",
       yieldPercent: "",
-      erpNumber: "", // Reset ERP Number field
+      poNumber: "", // Changed from erpNumber to poNumber
       paymentTerm: "", // Reset Payment Term field
     })
     setErrors({})
@@ -432,6 +413,7 @@ const GeneratePO = () => {
       if (!formData.rate.trim()) newErrors.rate = "Rate is required"
       if (!formData.leadTimeToLift.trim()) newErrors.leadTimeToLift = "Lead Time is required"
       if (formData.transportingType === "Select") newErrors.transportingType = "Please select transporting type"
+      // if (!formData.poNumber.trim()) newErrors.poNumber = "Po Number is required" // Added validation for Po Number
     }
 
     setErrors(newErrors)
@@ -455,9 +437,6 @@ const GeneratePO = () => {
     setIsSubmitting(true)
 
     try {
-      // Generate ERP PO Number
-      const erpPoNumber = await generateErpPoNumber()
-
       // Upload file if provided and haveToPO is "yes"
       let fileUrl = ""
       if (haveToPO === "yes" && formData.poFile) {
@@ -465,7 +444,7 @@ const GeneratePO = () => {
       }
 
       // Update sheets with haveToPO value
-      await updateSheets(formData, erpPoNumber, fileUrl, haveToPO)
+      await updateSheets(formData, fileUrl, haveToPO)
 
       // Update local state
       const newPO = {
@@ -481,7 +460,7 @@ const GeneratePO = () => {
             hour12: false,
           })
           .replace(",", ""),
-        erpPoNumber: erpPoNumber,
+        poNumber: haveToPO === "yes" ? formData.poNumber : "", // Changed from erpPoNumber to poNumber
         indentNumber: formData.indentNumber,
         materialName: formData.materialName,
         brokerName: formData.brokerName,
@@ -494,7 +473,7 @@ const GeneratePO = () => {
         femPercent: haveToPO === "yes" ? formData.femPercent : "",
         yieldPercent: haveToPO === "yes" ? formData.yieldPercent : "",
         generatePoStatus: haveToPO, // Store the yes/no value
-        erpNumber: haveToPO === "yes" ? formData.erpNumber : "", // Store ERP Number
+        erpNumber: "", // Keep empty for column Y
         paymentTerm: haveToPO === "yes" ? formData.paymentTerm : "", // Store Payment Term
       }
 
@@ -503,7 +482,7 @@ const GeneratePO = () => {
 
       closeModal()
       setIsSubmitting(false)
-      alert(`Purchase Order ${erpPoNumber} has been generated successfully.`)
+      alert(`Purchase Order ${haveToPO === "yes" ? formData.poNumber : "entry"} has been saved successfully.`) // Updated success message
     } catch (error) {
       console.error("Error submitting form:", error)
       setIsSubmitting(false)
@@ -655,7 +634,7 @@ const GeneratePO = () => {
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          ERP PO Number
+                          Po Number
                         </th>
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Indent Number
@@ -699,7 +678,7 @@ const GeneratePO = () => {
                       {filteredPoHistory.map((po) => (
                         <tr key={po.id} className="hover:bg-blue-50">
                           <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-blue-600">
-                            {po.erpPoNumber}
+                            {po.poNumber}
                           </td>
                           <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">{po.indentNumber}</td>
                           <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">{po.materialName}</td>
@@ -870,14 +849,16 @@ const GeneratePO = () => {
                       {errors.leadTimeToLift && <p className="text-xs text-red-600">{errors.leadTimeToLift}</p>}
                     </div>
                     <div className="space-y-1">
-                      <Label htmlFor="erpNumber">ERP Number</Label>
+                      <Label htmlFor="poNumber">ERP Number </Label>
                       <Input
-                        id="erpNumber"
-                        name="erpNumber"
-                        value={formData.erpNumber}
+                        id="poNumber"
+                        name="poNumber"
+                        value={formData.poNumber}
                         onChange={handleInputChange}
                         placeholder="Enter ERP Number"
+                      // className={errors.poNumber ? "border-red-500" : ""}
                       />
+                      {/* {errors.poNumber && <p className="text-xs text-red-600">{errors.poNumber}</p>} */}
                     </div>
                     <div className="space-y-1">
                       <Label htmlFor="paymentTerm">Payment Term</Label>

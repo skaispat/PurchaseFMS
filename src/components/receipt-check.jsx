@@ -1148,8 +1148,8 @@ export default function DeliveryManagement() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Good">Good</SelectItem>
-                      <SelectItem value="Damaged">Damaged</SelectItem>
-                      <SelectItem value="Partially Damaged">Partially Damaged</SelectItem>
+                      <SelectItem value="Damaged">Bad</SelectItem>
+                      {/* <SelectItem value="Partially Damaged">Partially Damaged</SelectItem> */}
                     </SelectContent>
                   </Select>
                   {formErrors.physicalCondition && (
@@ -1157,7 +1157,7 @@ export default function DeliveryManagement() {
                   )}
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-sm font-medium">Return Quantity</Label>
+                  <Label className="text-sm font-medium">Received Quantity</Label>
                   <Input
                     name="qtyDifference"
                     value={formData.qtyDifference}
