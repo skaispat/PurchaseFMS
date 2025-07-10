@@ -19,7 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 const SHEET_ID = "1RWxBXCtaZI6Ho05-8LpLzXK3vFDMGU7zS9h6kqXXN_Y"
 const FMS_SHEET = "FMS"
 const API_URL = "https://script.google.com/macros/s/AKfycbx3taDYQb8l6sT5pUieAHf6ODLCBa8EHKHnry61FeIFPovae8qkOsKIj4tzZ-waXrKjKw/exec"
-const DRIVE_FOLDER_ID = "1UyG7M3SLCRO1KWFerkjkpXs29EspKVlr"
+const DRIVE_FOLDER_ID = "1u2_9nDJuCNxf7F2C6DoPyJ9sDadYiSfh"
 
 // Column Definitions for Pending Table
 const PENDING_COLUMNS_META = [
@@ -64,7 +64,7 @@ export default function FMSManagement() {
         returnQty: "",
         billNo: "",
         debitNoteNo: "",
-        copyOfDebitNoteBill: null, // Changed to handle file
+        copyOfDebitNoteBill: null,
     })
     const [formErrors, setFormErrors] = useState({})
 
@@ -123,34 +123,32 @@ export default function FMSManagement() {
                     return {
                         id: `fms-${index + 7}`,
                         rowIndex: index + 7,
-                        purchaseReturnNumber: getCellValue(1), // Column B
-                        liftNumber: getCellValue(2), // Column C
-                        returnQty: getCellValue(3), // Column D
-                        returnReason: getCellValue(4), // Column E
-                        partyName: getCellValue(5), // Column F
-                        productName: getCellValue(6), // Column G
-                        weightSlip: getCellValue(7), // Column H
-                        planned: getCellValue(13), // Column N
-                        actual: getCellValue(14), // Column O
-                        billNo: getCellValue(16), // Column Q
-                        debitNoteNo: getCellValue(17), // Column R
-                        copyOfDebitNoteBill: getCellValue(18), // Column S
+                        purchaseReturnNumber: getCellValue(1),
+                        liftNumber: getCellValue(2),
+                        returnQty: getCellValue(3),
+                        returnReason: getCellValue(4),
+                        partyName: getCellValue(5),
+                        productName: getCellValue(6),
+                        weightSlip: getCellValue(7),
+                        planned: getCellValue(13),
+                        actual: getCellValue(14),
+                        billNo: getCellValue(16),
+                        debitNoteNo: getCellValue(17),
+                        copyOfDebitNoteBill: getCellValue(18),
                     }
                 })
                 .filter((row) => row !== null)
 
-            // Filter for Pending: Column N (Planned) NOT NULL and Column O (Actual) NULL
             const pendingRows = processedRows.filter(
                 (row) => row.planned && row.planned !== "" && (!row.actual || row.actual === ""),
             )
 
-            // Filter for History: Column N (Planned) NOT NULL and Column O (Actual) NOT NULL
             const historyRows = processedRows.filter(
                 (row) => row.planned && row.planned !== "" && row.actual && row.actual !== "",
             )
 
             setPendingReturns(pendingRows)
-            setHistoryReturns(historyRows.reverse()) // Show latest first
+            setHistoryReturns(historyRows.reverse())
         } catch (error) {
             console.error("Error fetching FMS data:", error)
             setError(`Failed to load FMS data: ${error.message}`)
@@ -166,100 +164,59 @@ export default function FMSManagement() {
         fetchFMSData()
     }, [fetchFMSData])
 
-    const uploadImageToDrive = async (file, fileName) => {
+    const uploadImageToDrive = async (file) => {
         try {
-            // Try multiple approaches for better compatibility
-            const formData = new FormData()
-            formData.append("action", "uploadFile")
-            formData.append("file", file)
-            formData.append("fileName", fileName)
-            formData.append("folderId", DRIVE_FOLDER_ID)
+            console.log(`Starting upload for file: ${file.name}`)
 
-            // First try with fetch
-            try {
-                const response = await fetch(API_URL, {
-                    method: "POST",
-                    mode: "no-cors", // Add no-cors mode
-                    body: formData,
-                })
+            const base64String = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const base64Data = reader.result.split(',')[1];
+                    resolve(base64Data);
+                };
+                reader.onerror = (error) => reject(error);
+                reader.readAsDataURL(file);
+            });
 
-                // Since no-cors doesn't allow reading response, assume success if no error
-                console.log("Upload request sent successfully")
+            console.log(`File converted to base64, size: ${base64String.length} characters`)
 
-                // Generate a mock Drive URL for demo purposes
-                // In production, your backend should return the actual URL
-                const mockDriveUrl = `https://drive.google.com/file/d/${Date.now()}_${fileName}/view`
-                return mockDriveUrl
+            const params = new URLSearchParams();
+            params.append('action', 'uploadFile');
+            params.append('fileName', file.name);
+            params.append('mimeType', file.type);
+            params.append('base64Data', base64String);
+            params.append('folderId', DRIVE_FOLDER_ID);
 
-            } catch (fetchError) {
-                console.log("Fetch failed, trying form submission...")
+            console.log(`Uploading to folder: ${DRIVE_FOLDER_ID}`)
 
-                // Fallback: Use form submission method
-                return new Promise((resolve, reject) => {
-                    // Create iframe for silent submission
-                    const iframe = document.createElement('iframe')
-                    iframe.style.display = 'none'
-                    iframe.name = 'uploadFrame'
-                    document.body.appendChild(iframe)
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: params.toString(),
+            });
 
-                    const form = document.createElement('form')
-                    form.method = 'POST'
-                    form.action = API_URL
-                    form.target = 'uploadFrame'
-                    form.enctype = 'multipart/form-data'
-                    form.style.display = 'none'
+            console.log(`Upload response status: ${response.status}`)
 
-                    // Add form fields
-                    const actionField = document.createElement('input')
-                    actionField.type = 'hidden'
-                    actionField.name = 'action'
-                    actionField.value = 'uploadFile'
-                    form.appendChild(actionField)
-
-                    const fileField = document.createElement('input')
-                    fileField.type = 'file'
-                    fileField.name = 'file'
-                    fileField.style.display = 'none'
-
-                    // Create a new FileList with our file
-                    const dt = new DataTransfer()
-                    dt.items.add(file)
-                    fileField.files = dt.files
-                    form.appendChild(fileField)
-
-                    const nameField = document.createElement('input')
-                    nameField.type = 'hidden'
-                    nameField.name = 'fileName'
-                    nameField.value = fileName
-                    form.appendChild(nameField)
-
-                    const folderField = document.createElement('input')
-                    folderField.type = 'hidden'
-                    folderField.name = 'folderId'
-                    folderField.value = DRIVE_FOLDER_ID
-                    form.appendChild(folderField)
-
-                    // Submit form
-                    document.body.appendChild(form)
-                    form.submit()
-
-                    // Clean up after timeout
-                    setTimeout(() => {
-                        document.body.removeChild(form)
-                        document.body.removeChild(iframe)
-
-                        // Generate mock URL for demo
-                        const mockDriveUrl = `https://drive.google.com/file/d/${Date.now()}_${fileName}/view`
-                        resolve(mockDriveUrl)
-                    }, 3000)
-                })
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error(`Upload failed: ${response.status}. ${errorText}`);
+                throw new Error(`Drive upload failed: ${response.status}. ${errorText}`);
             }
+
+            const result = await response.json();
+            console.log('Upload result:', result);
+
+            if (!result.success) {
+                throw new Error(result.message || "Failed to upload file via Apps Script");
+            }
+
+            console.log(`File uploaded successfully: ${result.fileUrl}`)
+            return result.fileUrl;
         } catch (error) {
-            console.error("Error uploading file:", error)
-            // Return a mock URL for demo purposes instead of throwing error
-            const mockDriveUrl = `https://drive.google.com/file/d/${Date.now()}_${fileName}/view`
-            console.log("Using mock URL for demo:", mockDriveUrl)
-            return mockDriveUrl
+            console.error("Error uploading file to Google Drive:", error);
+            throw new Error(`Failed to upload image: ${error.message}`);
         }
     }
 
@@ -300,11 +257,16 @@ export default function FMSManagement() {
     const handleFileChange = (e) => {
         const file = e.target.files[0]
         if (file) {
-            // Validate file type
             if (!file.type.startsWith('image/')) {
                 setFormErrors({ ...formErrors, copyOfDebitNoteBill: 'Please select a valid image file.' })
                 return
             }
+
+            if (file.size > 10 * 1024 * 1024) {
+                setFormErrors({ ...formErrors, copyOfDebitNoteBill: 'File size must be less than 10MB.' })
+                return
+            }
+
             setFormData({ ...formData, copyOfDebitNoteBill: file })
             if (formErrors.copyOfDebitNoteBill) {
                 setFormErrors({ ...formErrors, copyOfDebitNoteBill: null })
@@ -314,14 +276,12 @@ export default function FMSManagement() {
 
     const removeFile = () => {
         setFormData({ ...formData, copyOfDebitNoteBill: null })
-        // Reset file input
         const fileInput = document.getElementById('copyOfDebitNoteBill')
         if (fileInput) fileInput.value = ''
     }
 
     const validateForm = () => {
         const newErrors = {}
-        // Only debitNoteNo and copyOfDebitNoteBill are required now
         const requiredFields = ["debitNoteNo", "copyOfDebitNoteBill"]
 
         requiredFields.forEach((field) => {
@@ -339,19 +299,36 @@ export default function FMSManagement() {
     }
 
     const handleSubmit = async (e) => {
-        if (e) e.preventDefault()
+        if (e) e.preventDefault();
         if (!selectedReturn) {
-            alert("No return item selected.")
-            return
+            alert("No return item selected.");
+            return;
         }
         if (!validateForm()) {
-            alert("Please fill all required fields correctly.")
-            return
+            alert("Please fill all required fields correctly.");
+            return;
         }
 
-        setIsSubmitting(true)
+        setIsSubmitting(true);
+        let imageUrl = "";
+
         try {
-            const now = new Date()
+            // 1. First upload the image
+            if (formData.copyOfDebitNoteBill) {
+                try {
+                    console.log("Starting image upload...");
+                    imageUrl = await uploadImageToDrive(formData.copyOfDebitNoteBill);
+                    console.log("Image upload successful:", imageUrl);
+                } catch (uploadError) {
+                    console.error("Image upload failed:", uploadError);
+                    alert("Failed to upload image. Please try again.");
+                    setIsSubmitting(false);
+                    return;
+                }
+            }
+
+            // 2. Prepare the data for submission
+            const now = new Date();
             const timestamp = now
                 .toLocaleString("en-GB", {
                     day: "2-digit",
@@ -362,122 +339,110 @@ export default function FMSManagement() {
                     second: "2-digit",
                     hour12: false,
                 })
-                .replace(",", "")
+                .replace(",", "");
 
-            // Upload image to Google Drive first
-            let imageUrl = ""
-            if (formData.copyOfDebitNoteBill) {
-                try {
-                    const fileName = `${selectedReturn.purchaseReturnNumber}_${timestamp.replace(/[/:]/g, '-')}_${formData.copyOfDebitNoteBill.name}`
-                    imageUrl = await uploadImageToDrive(formData.copyOfDebitNoteBill, fileName)
-                    console.log("Image uploaded successfully:", imageUrl)
-                } catch (uploadError) {
-                    console.error("Image upload failed:", uploadError)
-                    // Don't stop the process, continue with empty URL
-                    console.log("Continuing without image upload...")
-                    imageUrl = ""
-                }
-            }
+            const updateRowData = Array(19).fill("");
+            updateRowData[14] = timestamp; // Column O - Actual (timestamp)
+            updateRowData[16] = formData.billNo; // Column Q - Bill No.
+            updateRowData[17] = formData.debitNoteNo; // Column R - Debit Note No.
+            updateRowData[18] = imageUrl; // Column S - Copy Of Debit Note /Bill
 
-            // Prepare update data for the existing row
-            const updateRowData = Array(19).fill("") // Assuming 19 columns (A to S)
-
-            // Keep existing data and update specific columns
-            updateRowData[14] = timestamp // Column O - Actual (timestamp)
-            updateRowData[16] = formData.billNo // Column Q - Bill No.
-            updateRowData[17] = formData.debitNoteNo // Column R - Debit Note No.
-            updateRowData[18] = imageUrl // Column S - Copy Of Debit Note /Bill (Google Drive URL)
-
-            // Use fetch with proper error handling
-            const formDataToSend = new FormData()
-            formDataToSend.append("action", "update")
-            formDataToSend.append("sheetName", FMS_SHEET)
-            formDataToSend.append("rowIndex", selectedReturn.rowIndex)
-            formDataToSend.append("rowData", JSON.stringify(updateRowData))
-
+            // 3. Try direct fetch submission first
+            let submissionSuccess = false;
             try {
+                console.log("Attempting direct fetch submission...");
                 const response = await fetch(API_URL, {
-                    method: "POST",
-                    body: formDataToSend,
-                })
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        action: 'update',
+                        sheetName: FMS_SHEET,
+                        rowIndex: selectedReturn.rowIndex,
+                        rowData: JSON.stringify(updateRowData)
+                    }).toString(),
+                });
 
-                // Try to get response text (might be HTML or JSON)
-                const responseText = await response.text()
-                console.log("Response:", responseText)
-
-                // Check if response contains success indicators
-                if (responseText.includes('success') || response.ok) {
-                    await fetchFMSData()
-                    handleClosePopup()
-                    alert(`Action recorded successfully for ${selectedReturn.purchaseReturnNumber}.`)
+                if (response.ok) {
+                    const result = await response.text();
+                    console.log("Direct fetch response:", result);
+                    if (result.includes('success') || result.includes('Success')) {
+                        submissionSuccess = true;
+                        console.log("Direct fetch submission successful");
+                    }
                 } else {
-                    throw new Error("Update may have failed")
+                    console.error("Direct fetch failed with status:", response.status);
                 }
             } catch (fetchError) {
-                console.log("Fetch failed, trying alternative approach...")
-
-                // Create iframe for silent submission
-                const iframe = document.createElement('iframe')
-                iframe.style.display = 'none'
-                iframe.name = 'hiddenFrame'
-                document.body.appendChild(iframe)
-
-                const form = document.createElement('form')
-                form.method = 'POST'
-                form.action = API_URL
-                form.target = 'hiddenFrame'
-                form.style.display = 'none'
-
-                // Add form fields
-                const actionField = document.createElement('input')
-                actionField.type = 'hidden'
-                actionField.name = 'action'
-                actionField.value = 'update'
-                form.appendChild(actionField)
-
-                const sheetField = document.createElement('input')
-                sheetField.type = 'hidden'
-                sheetField.name = 'sheetName'
-                sheetField.value = FMS_SHEET
-                form.appendChild(sheetField)
-
-                const rowField = document.createElement('input')
-                rowField.type = 'hidden'
-                rowField.name = 'rowIndex'
-                rowField.value = selectedReturn.rowIndex
-                form.appendChild(rowField)
-
-                const dataField = document.createElement('input')
-                dataField.type = 'hidden'
-                dataField.name = 'rowData'
-                dataField.value = JSON.stringify(updateRowData)
-                form.appendChild(dataField)
-
-                // Submit form
-                document.body.appendChild(form)
-                form.submit()
-
-                // Clean up
-                setTimeout(() => {
-                    document.body.removeChild(form)
-                    document.body.removeChild(iframe)
-                }, 1000)
-
-                // Wait and refresh data
-                setTimeout(async () => {
-                    await fetchFMSData()
-                    handleClosePopup()
-                    alert(`Action recorded successfully for ${selectedReturn.purchaseReturnNumber}.`)
-                }, 3000)
+                console.error("Direct fetch error:", fetchError);
             }
 
+            // 4. If direct fetch failed, try fallback form submission
+            if (!submissionSuccess) {
+                console.log("Attempting fallback form submission...");
+                try {
+                    const iframe = document.createElement('iframe');
+                    iframe.style.display = 'none';
+                    iframe.name = 'updateFrame';
+                    document.body.appendChild(iframe);
+
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = API_URL;
+                    form.target = 'updateFrame';
+                    form.style.display = 'none';
+
+                    // Add form fields
+                    const fields = {
+                        action: 'update',
+                        sheetName: FMS_SHEET,
+                        rowIndex: selectedReturn.rowIndex,
+                        rowData: JSON.stringify(updateRowData)
+                    };
+
+                    Object.entries(fields).forEach(([name, value]) => {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = name;
+                        input.value = value;
+                        form.appendChild(input);
+                    });
+
+                    document.body.appendChild(form);
+                    form.submit();
+                    submissionSuccess = true;
+                    console.log("Fallback form submitted");
+
+                    // Clean up
+                    setTimeout(() => {
+                        document.body.removeChild(form);
+                        document.body.removeChild(iframe);
+                    }, 2000);
+                } catch (fallbackError) {
+                    console.error("Fallback submission failed:", fallbackError);
+                    submissionSuccess = false;
+                }
+            }
+
+            // 5. Handle submission result
+            if (submissionSuccess) {
+                console.log("Submission successful, refreshing data...");
+                // Wait for changes to propagate
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                await fetchFMSData();
+                handleClosePopup();
+                alert("Return processed successfully!");
+            } else {
+                throw new Error("All submission methods failed");
+            }
         } catch (error) {
-            console.error("Error submitting form:", error)
-            alert(`Error: ${error.message}`)
+            console.error("Submission process error:", error);
+            alert(`Error: ${error.message}`);
         } finally {
-            setIsSubmitting(false)
+            setIsSubmitting(false);
         }
-    }
+    };
 
     const handleToggleColumn = (tab, dataKey, checked) => {
         if (tab === "pending") {
@@ -498,6 +463,7 @@ export default function FMSManagement() {
             setVisibleHistoryColumns((prev) => ({ ...prev, ...newVisibility }))
         }
     }
+
     const renderCell = (item, column, tab) => {
         const value = item[column.dataKey]
 
@@ -529,7 +495,6 @@ export default function FMSManagement() {
             )
         }
 
-        // Special handling for copyOfDebitNoteBill column to show view icon if it has a URL
         if (column.dataKey === "copyOfDebitNoteBill" && value) {
             return (
                 <a
@@ -836,7 +801,7 @@ export default function FMSManagement() {
                                     <Button onClick={handleSubmit} disabled={isSubmitting} className="min-w-[120px]">
                                         {isSubmitting ? (
                                             <>
-                                                <Loader2 className="h-4 w-4 animate-spin mr-2" /> Submitting...
+                                                <Loader2 className="h-4 w-4 animate-spin mr-2" /> Processing...
                                             </>
                                         ) : (
                                             "Submit"
