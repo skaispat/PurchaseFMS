@@ -790,21 +790,31 @@ const GeneratePO = () => {
                     </div>
                     <div className="space-y-1">
                       <Label htmlFor="partyName">Party Name *</Label>
-                      <Select
-                        onValueChange={handlePartyNameChange}
-                        value={formData.partyName}
-                      >
-                        <SelectTrigger className={errors.partyName ? "border-red-500" : ""}>
-                          <SelectValue placeholder="Select party name" />
-                        </SelectTrigger>
-                        <SelectContent>
+                      <div className="relative">
+                        <Input
+                          list="partyNamesList"
+                          id="partyName"
+                          name="partyName"
+                          value={formData.partyName}
+                          onChange={(e) => {
+                            setFormData({
+                              ...formData,
+                              partyName: e.target.value,
+                            });
+                            setErrors({
+                              ...errors,
+                              partyName: "",
+                            });
+                          }}
+                          placeholder="Type to search party names"
+                          className={errors.partyName ? "border-red-500" : ""}
+                        />
+                        <datalist id="partyNamesList">
                           {partyNames.map((party, index) => (
-                            <SelectItem key={index} value={party}>
-                              {party}
-                            </SelectItem>
+                            <option key={index} value={party} />
                           ))}
-                        </SelectContent>
-                      </Select>
+                        </datalist>
+                      </div>
                       {errors.partyName && <p className="text-xs text-red-600">{errors.partyName}</p>}
                     </div>
                     <div className="space-y-1">

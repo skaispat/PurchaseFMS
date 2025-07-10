@@ -317,7 +317,7 @@ export default function LiftMaterial() {
       materialName: po.materialName,
       brokerName: po.brokerName,
       partyName: po.partyName, // Pre-fill party name from PO
-      qty: po.qty,
+      qty: "",
       billNumber: "",
       truckNumber: "",
       driverNumber: "",
