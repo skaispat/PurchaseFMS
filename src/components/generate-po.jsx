@@ -39,6 +39,7 @@ const GeneratePO = () => {
     femPercent: "",
     yieldPercent: "",
     erpNumber: "", // New field for ERP Number
+    paymentTerm: "", // New field for Payment Term
   })
 
   // Form errors
@@ -104,7 +105,7 @@ const GeneratePO = () => {
         setPendingIndents(processedIndents)
 
         // Fetch PO data
-        const poUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(poSheetName)}&range=A7:Y1000`
+        const poUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(poSheetName)}&range=A7:Z1000`
         const poResponse = await fetch(poUrl)
         if (!poResponse.ok) {
           throw new Error(`Failed to fetch PO data: ${poResponse.status}`)
@@ -140,6 +141,7 @@ const GeneratePO = () => {
               yieldPercent: getCellValue(12), // Column M
               generatePoStatus: getCellValue(23), // Column X - Generate PO Status
               erpNumber: getCellValue(24), // Column Y - ERP PO NO.
+              paymentTerm: getCellValue(25), // Column Z - Payment Term
             }
           })
           .filter((po) => po.erpPoNumber && po.erpPoNumber.trim() !== "")
@@ -210,7 +212,8 @@ const GeneratePO = () => {
         po.qty.toLowerCase().includes(searchTerm.toLowerCase()) ||
         po.rate.toLowerCase().includes(searchTerm.toLowerCase()) ||
         po.transportingType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        po.erpNumber.toLowerCase().includes(searchTerm.toLowerCase()),
+        po.erpNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (po.paymentTerm && po.paymentTerm.toLowerCase().includes(searchTerm.toLowerCase())),
     )
   }, [poHistory, searchTerm])
 
@@ -348,6 +351,7 @@ const GeneratePO = () => {
         "", // Column W
         haveToPOValue, // Column X - Generate PO Status
         dataToSubmit.erpNumber || "", // Column Y - ERP PO NO.
+        dataToSubmit.paymentTerm || "", // Column Z - Payment Term
       ]
 
       // Add to PO sheet
@@ -388,6 +392,7 @@ const GeneratePO = () => {
       femPercent: "",
       yieldPercent: "",
       erpNumber: "", // Reset ERP Number field
+      paymentTerm: "", // Reset Payment Term field
     })
     setErrors({})
     setHaveToPO("") // Reset the dropdown selection
@@ -411,6 +416,7 @@ const GeneratePO = () => {
       femPercent: "",
       yieldPercent: "",
       erpNumber: "", // Reset ERP Number field
+      paymentTerm: "", // Reset Payment Term field
     })
     setErrors({})
     setHaveToPO("") // Reset the dropdown selection
@@ -489,6 +495,7 @@ const GeneratePO = () => {
         yieldPercent: haveToPO === "yes" ? formData.yieldPercent : "",
         generatePoStatus: haveToPO, // Store the yes/no value
         erpNumber: haveToPO === "yes" ? formData.erpNumber : "", // Store ERP Number
+        paymentTerm: haveToPO === "yes" ? formData.paymentTerm : "", // Store Payment Term
       }
 
       setPoHistory((prev) => [newPO, ...prev])
@@ -564,6 +571,9 @@ const GeneratePO = () => {
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Action
+                        </th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Indent Number
                         </th>
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -584,14 +594,16 @@ const GeneratePO = () => {
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Approved Qty
                         </th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Action
-                        </th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {filteredPendingIndents.map((indent) => (
                         <tr key={indent.id} className="hover:bg-blue-50">
+                          <td className="px-4 py-2 whitespace-nowrap">
+                            <Button onClick={() => handleIndentSelect(indent)} size="sm">
+                              Generate PO
+                            </Button>
+                          </td>
                           <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-blue-600">
                             {indent.indentNumber}
                           </td>
@@ -601,11 +613,6 @@ const GeneratePO = () => {
                           <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">{indent.location}</td>
                           <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">{indent.division}</td>
                           <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">{indent.approvedQty}</td>
-                          <td className="px-4 py-2 whitespace-nowrap">
-                            <Button onClick={() => handleIndentSelect(indent)} size="sm">
-                              Generate PO
-                            </Button>
-                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -683,6 +690,9 @@ const GeneratePO = () => {
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           ERP PO NO.
                         </th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Payment Term
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -715,17 +725,17 @@ const GeneratePO = () => {
                           </td>
                           <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">{po.transportingType}</td>
                           <td className="px-4 py-2 whitespace-nowrap">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              po.generatePoStatus === "yes" 
-                                ? "bg-green-100 text-green-800" 
-                                : po.generatePoStatus === "no"
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${po.generatePoStatus === "yes"
+                              ? "bg-green-100 text-green-800"
+                              : po.generatePoStatus === "no"
                                 ? "bg-red-100 text-red-800"
                                 : "bg-gray-100 text-gray-800"
-                            }`}>
+                              }`}>
                               {po.generatePoStatus || "-"}
                             </span>
                           </td>
                           <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">{po.erpNumber || "-"}</td>
+                          <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">{po.paymentTerm || "-"}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -801,8 +811,8 @@ const GeneratePO = () => {
                     </div>
                     <div className="space-y-1">
                       <Label htmlFor="partyName">Party Name *</Label>
-                      <Select 
-                        onValueChange={handlePartyNameChange} 
+                      <Select
+                        onValueChange={handlePartyNameChange}
                         value={formData.partyName}
                       >
                         <SelectTrigger className={errors.partyName ? "border-red-500" : ""}>
@@ -860,13 +870,23 @@ const GeneratePO = () => {
                       {errors.leadTimeToLift && <p className="text-xs text-red-600">{errors.leadTimeToLift}</p>}
                     </div>
                     <div className="space-y-1">
-                      <Label htmlFor="erpNumber">ERP Number (Optional)</Label>
+                      <Label htmlFor="erpNumber">ERP Number</Label>
                       <Input
                         id="erpNumber"
                         name="erpNumber"
                         value={formData.erpNumber}
                         onChange={handleInputChange}
                         placeholder="Enter ERP Number"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="paymentTerm">Payment Term</Label>
+                      <Input
+                        id="paymentTerm"
+                        name="paymentTerm"
+                        value={formData.paymentTerm}
+                        onChange={handleInputChange}
+                        placeholder="Enter Payment Term"
                       />
                     </div>
                     <div className="space-y-1">

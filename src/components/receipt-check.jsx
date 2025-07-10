@@ -24,6 +24,7 @@ const FMS_SHEET_ID = "1RWxBXCtaZI6Ho05-8LpLzXK3vFDMGU7zS9h6kqXXN_Y"
 const FMS_SHEET_NAME = "FMS"
 const API_URL =
   "https://script.google.com/macros/s/AKfycbx3taDYQb8l6sT5pUieAHf6ODLCBa8EHKHnry61FeIFPovae8qkOsKIj4tzZ-waXrKjKw/exec"
+const DRIVE_FOLDER_ID = "1nB9vOp4dkazFpr95wIbgw1rZtzj6L6Cg"
 
 // Column Definitions for Pending Table - Action moved to first position
 const PENDING_COLUMNS_META = [
@@ -365,6 +366,11 @@ export default function DeliveryManagement() {
     if (formErrors[name]) setFormErrors({ ...formErrors, [name]: null })
   }
 
+  const [uploadingImages, setUploadingImages] = useState({
+    physicalImageOfProduct: false,
+    imageOfWeightSlip: false
+  })
+
   const handleFileUpload = (e) => {
     const { name, files } = e.target
     const file = files && files[0] ? files[0] : null
@@ -415,32 +421,62 @@ export default function DeliveryManagement() {
 
   const uploadFileToDrive = async (file) => {
     try {
-      const base64Data = await new Promise((resolve, reject) => {
-        const reader = new FileReader()
-        reader.readAsDataURL(file)
-        reader.onload = () => resolve(reader.result)
-        reader.onerror = (error) => reject(error)
-      })
+      console.log(`Starting upload for file: ${file.name}`)
 
-      const uploadFormData = new FormData()
-      uploadFormData.append("action", "uploadFile")
-      uploadFormData.append("fileName", file.name)
-      uploadFormData.append("mimeType", file.type)
-      uploadFormData.append("base64Data", base64Data.split(",")[1])
+      // Read file as base64 string
+      const base64String = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          // Remove the data URL prefix (e.g., "data:image/png;base64,")
+          const base64Data = reader.result.split(',')[1];
+          resolve(base64Data);
+        };
+        reader.onerror = (error) => reject(error);
+        reader.readAsDataURL(file);
+      });
 
-      const response = await fetch(API_URL, { method: "POST", body: uploadFormData })
+      console.log(`File converted to base64, size: ${base64String.length} characters`)
+
+      // Create URLSearchParams for the upload request
+      const params = new URLSearchParams();
+      params.append('action', 'uploadFile');
+      params.append('fileName', file.name);
+      params.append('mimeType', file.type);
+      params.append('base64Data', base64String);
+      params.append('folderId', DRIVE_FOLDER_ID); // Add folder ID to store files in specific folder
+
+      console.log(`Uploading to folder: ${DRIVE_FOLDER_ID}`)
+
+      const response = await fetch(SKA_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: params.toString(),
+      });
+
+      console.log(`Upload response status: ${response.status}`)
+
       if (!response.ok) {
-        const errorText = await response.text()
-        throw new Error(`Drive upload failed: ${response.status}. ${errorText}`)
+        const errorText = await response.text();
+        console.error(`Upload failed: ${response.status}. ${errorText}`);
+        throw new Error(`Drive upload failed: ${response.status}. ${errorText}`);
       }
-      const result = await response.json()
-      if (!result.success) throw new Error(result.message || "Failed to upload file via Apps Script")
-      return result.fileUrl
+
+      const result = await response.json();
+      console.log('Upload result:', result);
+
+      if (!result.success) {
+        throw new Error(result.message || "Failed to upload file via Apps Script");
+      }
+
+      console.log(`File uploaded successfully: ${result.fileUrl}`)
+      return result.fileUrl;
     } catch (error) {
-      console.error("Error uploading file to Google Drive:", error)
-      throw error
+      console.error("Error uploading file to Google Drive:", error);
+      throw new Error(`Failed to upload image: ${error.message}`);
     }
-  }
+  };
 
   const handleSubmit = async (e) => {
     if (e) e.preventDefault()
@@ -468,6 +504,29 @@ export default function DeliveryManagement() {
         })
         .replace(",", "")
 
+      // Upload images if they exist
+      let physicalImageUrl = ""
+      let weightSlipImageUrl = ""
+
+      if (formData.physicalImageOfProduct) {
+        console.log("Uploading physical image...")
+        setUploadingImages(prev => ({ ...prev, physicalImageOfProduct: true }))
+        physicalImageUrl = await uploadFileToDrive(formData.physicalImageOfProduct)
+        setUploadingImages(prev => ({ ...prev, physicalImageOfProduct: false }))
+      }
+
+      if (formData.imageOfWeightSlip) {
+        console.log("Uploading weight slip image...")
+        setUploadingImages(prev => ({ ...prev, imageOfWeightSlip: true }))
+        weightSlipImageUrl = await uploadFileToDrive(formData.imageOfWeightSlip)
+        setUploadingImages(prev => ({ ...prev, imageOfWeightSlip: false }))
+      }
+
+      console.log("Image uploads completed:", {
+        physicalImageUrl,
+        weightSlipImageUrl
+      })
+
       // Prepare update data for the existing row
       const updateRowData = Array(22).fill("") // Assuming 22 columns (A to V)
 
@@ -475,8 +534,10 @@ export default function DeliveryManagement() {
       updateRowData[16] = timestamp // Column Q - Actual 1 (timestamp)
       updateRowData[18] = formData.physicalCondition // Column S - Physical Condition
       updateRowData[19] = formData.qtyDifference // Column T - Qty Difference
-      updateRowData[20] = "" // Column U - Physical Image Of Product (empty for now)
-      updateRowData[21] = "" // Column V - Image Of Weight Slip (empty for now)
+      updateRowData[20] = physicalImageUrl // Column U - Physical Image Of Product
+      updateRowData[21] = weightSlipImageUrl // Column V - Image Of Weight Slip
+
+      console.log("Updating sheet with data:", updateRowData)
 
       // Use direct iframe approach for fastest submission
       const iframe = document.createElement('iframe')
@@ -543,6 +604,10 @@ export default function DeliveryManagement() {
       alert(`Error: ${error.message}`)
     } finally {
       setIsSubmitting(false)
+      setUploadingImages({
+        physicalImageOfProduct: false,
+        imageOfWeightSlip: false
+      })
     }
   }
 
@@ -699,19 +764,27 @@ export default function DeliveryManagement() {
   const renderFileUploadSection = (fieldName, label) => {
     const hasFile = formData[fieldName]
     const hasPreview = imagePreview[fieldName]
+    const isUploading = uploadingImages[fieldName]
 
     return (
       <div>
         <Label className="block text-sm font-medium text-gray-700 mb-1">{label}</Label>
         <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-blue-400 transition-colors">
           <div className="space-y-1 text-center">
-            <Upload className="mx-auto h-8 w-8 text-gray-400" />
+            {isUploading ? (
+              <div className="flex flex-col items-center">
+                <Loader2 className="mx-auto h-8 w-8 text-blue-500 animate-spin" />
+                <p className="text-xs text-blue-600 mt-2">Uploading...</p>
+              </div>
+            ) : (
+              <Upload className="mx-auto h-8 w-8 text-gray-400" />
+            )}
             <div className="flex text-sm text-gray-600 justify-center">
               <Label
                 htmlFor={fieldName}
-                className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-blue-500 px-1"
+                className={`relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-blue-500 px-1 ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}
               >
-                <span>Upload</span>
+                <span>{isUploading ? 'Uploading...' : 'Upload'}</span>
                 <Input
                   id={fieldName}
                   name={fieldName}
@@ -719,13 +792,14 @@ export default function DeliveryManagement() {
                   className="sr-only"
                   onChange={handleFileUpload}
                   accept="image/*"
+                  disabled={isUploading}
                 />
               </Label>
             </div>
             <p className="text-xs text-gray-500">
               {hasFile ? formData[fieldName].name : "PNG, JPG (Optional)"}
             </p>
-            {hasPreview && (
+            {hasPreview && !isUploading && (
               <div className="mt-2">
                 <Button
                   type="button"
@@ -1083,7 +1157,7 @@ export default function DeliveryManagement() {
                   )}
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-sm font-medium">Qty Difference*</Label>
+                  <Label className="text-sm font-medium">Return Quantity</Label>
                   <Input
                     name="qtyDifference"
                     value={formData.qtyDifference}
@@ -1113,12 +1187,17 @@ export default function DeliveryManagement() {
                 <Button
                   onClick={handleSubmit}
                   className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || uploadingImages.physicalImageOfProduct || uploadingImages.imageOfWeightSlip}
                 >
                   {isSubmitting ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin mr-2" />
                       <span>Processing...</span>
+                    </>
+                  ) : uploadingImages.physicalImageOfProduct || uploadingImages.imageOfWeightSlip ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      <span>Uploading Images...</span>
                     </>
                   ) : (
                     "Confirm Receipt"

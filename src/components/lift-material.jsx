@@ -117,20 +117,50 @@ export default function LiftMaterial() {
   const [formErrors, setFormErrors] = useState({})
 
   const [activeTab, setActiveTab] = useState("pending")
-  const [visiblePoColumns, setVisiblePoColumns] = useState({})
-  const [visibleDeliveryColumns, setVisibleDeliveryColumns] = useState({})
+  const [visiblePoColumns, setVisiblePoColumns] = useState({
+    actionColumn: true,
+    erpPoNumber: true,
+    indentNumber: true,
+    materialName: true,
+    brokerName: true,
+    partyName: true,
+    qty: true,
+    rate: true,
+    leadTime: true,
+    poCopy: true,
+    transportingType: true,
+    femPercent: true,
+    yieldPercent: true,
+  })
+  const [visibleDeliveryColumns, setVisibleDeliveryColumns] = useState({
+    liftNo: true,
+    erpPoNumber: true,
+    indentNumber: true,
+    brokerName: true,
+    partyName: true,
+    materialName: true,
+    qty: true,
+    billNumber: true,
+    truckNumber: true,
+    driverNumber: true,
+    billImage: true,
+    transporterName: true,
+    partyWeighmentCopy: true,
+    motherBill: true,
+  })
 
-  useEffect(() => {
-    const initializeVisibility = (columnsMeta) => {
-      const visibility = {}
-      columnsMeta.forEach((col) => {
-        visibility[col.dataKey] = col.alwaysVisible || col.toggleable
-      })
-      return visibility
-    }
-    setVisiblePoColumns(initializeVisibility(PO_COLUMNS_META))
-    setVisibleDeliveryColumns(initializeVisibility(DELIVERY_COLUMNS_META))
-  }, [])
+  // Remove the useEffect that was causing issues
+  // useEffect(() => {
+  //   const initializeVisibility = (columnsMeta) => {
+  //     const visibility = {}
+  //     columnsMeta.forEach((col) => {
+  //       visibility[col.dataKey] = true // Show all columns by default
+  //     })
+  //     return visibility
+  //   }
+  //   setVisiblePoColumns(initializeVisibility(PO_COLUMNS_META))
+  //   setVisibleDeliveryColumns(initializeVisibility(DELIVERY_COLUMNS_META))
+  // }, [])
 
   const fetchPendingPOs = useCallback(async () => {
     setLoadingPOs(true)
@@ -340,7 +370,7 @@ export default function LiftMaterial() {
     const { name, files } = e.target
     const file = files && files[0] ? files[0] : null
     setFormData({ ...formData, [name]: file })
-    
+
     // Create image preview URL
     if (file && file.type.startsWith('image/')) {
       const previewUrl = URL.createObjectURL(file)
@@ -348,7 +378,7 @@ export default function LiftMaterial() {
     } else {
       setImagePreview(prev => ({ ...prev, [name]: null }))
     }
-    
+
     if (formErrors[name]) setFormErrors({ ...formErrors, [name]: null })
   }
 
@@ -360,7 +390,7 @@ export default function LiftMaterial() {
 
   const validateForm = () => {
     const newErrors = {}
-    const requiredFields = ["billNumber", "truckNumber", "driverNumber", "transporterName"]
+    const requiredFields = ["billNumber", "truckNumber"]
 
     requiredFields.forEach((field) => {
       if (!formData[field] || String(formData[field]).trim() === "") {
@@ -544,7 +574,11 @@ export default function LiftMaterial() {
   const handleSelectAllColumns = (tab, columnsMeta, checked) => {
     const newVisibility = {}
     columnsMeta.forEach((col) => {
-      if (col.toggleable && !col.alwaysVisible) newVisibility[col.dataKey] = checked
+      if (col.alwaysVisible) {
+        newVisibility[col.dataKey] = true // Always keep these visible
+      } else {
+        newVisibility[col.dataKey] = checked
+      }
     })
     if (tab === "pos") {
       setVisiblePoColumns((prev) => ({ ...prev, ...newVisibility }))
@@ -575,7 +609,7 @@ export default function LiftMaterial() {
   const renderFileUploadSection = (fieldName, label) => {
     const hasFile = formData[fieldName]
     const hasPreview = imagePreview[fieldName]
-    
+
     return (
       <div>
         <Label className="block text-sm font-medium text-gray-700 mb-1" htmlFor={fieldName}>
@@ -682,7 +716,7 @@ export default function LiftMaterial() {
                             </Button>
                           </div>
                           <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                            {PO_COLUMNS_META.filter((col) => col.toggleable).map((col) => (
+                            {PO_COLUMNS_META.map((col) => (
                               <div key={`toggle-po-${col.dataKey}`} className="flex items-center space-x-2">
                                 <Checkbox
                                   id={`toggle-po-${col.dataKey}`}
@@ -816,7 +850,7 @@ export default function LiftMaterial() {
                             </Button>
                           </div>
                           <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                            {DELIVERY_COLUMNS_META.filter((col) => col.toggleable).map((col) => (
+                            {DELIVERY_COLUMNS_META.map((col) => (
                               <div key={`toggle-delivery-${col.dataKey}`} className="flex items-center space-x-2">
                                 <Checkbox
                                   id={`toggle-delivery-${col.dataKey}`}
@@ -990,7 +1024,7 @@ export default function LiftMaterial() {
 
                   <div>
                     <Label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="driverNumber">
-                      Driver Number <span className="text-red-500">*</span>
+                      Driver Number <span className="text-red-500"></span>
                     </Label>
                     <Input
                       id="driverNumber"
@@ -1005,7 +1039,7 @@ export default function LiftMaterial() {
 
                   <div>
                     <Label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="transporterName">
-                      Transporter Name <span className="text-red-500">*</span>
+                      Transporter Name <span className="text-red-500"></span>
                     </Label>
                     <Input
                       id="transporterName"
