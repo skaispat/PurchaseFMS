@@ -658,9 +658,9 @@ export default function FMSManagement() {
                         </div>
                         <Popover>
                             <PopoverTrigger asChild>
-                                <Button variant="outline" size="sm" className="h-8 text-xs">
+                                {/* <Button variant="outline" size="sm" className="h-8 text-xs">
                                     <MixerHorizontalIcon className="mr-1.5 h-3.5 w-3.5" /> View Columns
-                                </Button>
+                                </Button> */}
                             </PopoverTrigger>
                             <PopoverContent className="w-[240px] p-3">
                                 <div className="grid gap-2">
