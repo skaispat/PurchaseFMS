@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Package, FileText, Loader2, History, FileCheck, AlertTriangle, ExternalLink, X } from "lucide-react"
+import { Package, FileText, Loader2, History, FileCheck, AlertTriangle, ExternalLink, X, Search, RefreshCw } from "lucide-react"
 
 // Shadcn UI components
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
@@ -217,6 +217,8 @@ export default function DeliveryManagement() {
   const [showPopup, setShowPopup] = useState(false)
   const [error, setError] = useState(null)
   const [toast, setToast] = useState(null)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   const [formData, setFormData] = useState({
     liftNo: "",
@@ -329,6 +331,43 @@ export default function DeliveryManagement() {
   useEffect(() => {
     fetchDeliveryData()
   }, [fetchDeliveryData])
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    await fetchDeliveryData()
+    setIsRefreshing(false)
+    setToast({
+      message: "Refreshed",
+      description: "Data has been refreshed successfully.",
+      type: "success",
+    })
+  }
+
+  const filterData = (data) => {
+    if (!searchQuery.trim()) return data
+
+    const query = searchQuery.toLowerCase().trim()
+    return data.filter((item) => {
+      return (
+        item.liftNo?.toLowerCase().includes(query) ||
+        item.erpPoNumber?.toLowerCase().includes(query) ||
+        item.indentNumber?.toLowerCase().includes(query) ||
+        item.brokerName?.toLowerCase().includes(query) ||
+        item.partyName?.toLowerCase().includes(query) ||
+        item.materialName?.toLowerCase().includes(query) ||
+        item.billNumber?.toLowerCase().includes(query) ||
+        item.truckNumber?.toLowerCase().includes(query) ||
+        item.driverNumber?.toLowerCase().includes(query) ||
+        item.transporterName?.toLowerCase().includes(query) ||
+        item.physicalCondition?.toLowerCase().includes(query) ||
+        item.status?.toLowerCase().includes(query) ||
+        item.remarks?.toLowerCase().includes(query)
+      )
+    })
+  }
+
+  const filteredPendingDeliveries = filterData(pendingDeliveries)
+  const filteredHistoryDeliveries = filterData(historyDeliveries)
 
   const handleReceiptClick = (delivery) => {
     setSelectedDelivery(delivery)
@@ -606,17 +645,30 @@ export default function DeliveryManagement() {
       )}
 
       <Card className="shadow-md border-none">
-        {/* <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-lg">
-          <CardTitle className="flex items-center gap-2 text-gray-700">
-            <Package className="h-6 w-6 text-blue-600" />
-            Delivery Management System
-          </CardTitle>
-          <CardDescription className="text-gray-600">
-            Manage delivery receipts and track delivery history.
-          </CardDescription>
-        </CardHeader> */}
-
         <CardContent className="p-6">
+          {/* Search Bar and Refresh Button */}
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search deliveries (Lift No, ERP Po, Broker, Party, Material, etc.)"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 pr-4"
+              />
+            </div>
+            <Button
+              onClick={handleRefresh}
+              disabled={isRefreshing || loadingPending || loadingHistory}
+              variant="outline"
+              className="flex items-center gap-2 min-w-[120px]"
+            >
+              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Refreshing...' : 'Refresh'}
+            </Button>
+          </div>
+
           {loadingPending && loadingHistory ? (
             <div className="flex flex-col justify-center items-center h-60">
               <Loader2 className="h-10 w-10 text-blue-500 animate-spin mb-3" />
@@ -635,14 +687,14 @@ export default function DeliveryManagement() {
                   <FileCheck className="h-4 w-4" />
                   Pending
                   <Badge variant="secondary" className="ml-1 px-1.5 py-0.5 text-xs">
-                    {pendingDeliveries.length}
+                    {filteredPendingDeliveries.length}
                   </Badge>
                 </TabsTrigger>
                 <TabsTrigger value="history" className="flex items-center gap-2">
                   <History className="h-4 w-4" />
                   History
                   <Badge variant="secondary" className="ml-1 px-1.5 py-0.5 text-xs">
-                    {historyDeliveries.length}
+                    {filteredHistoryDeliveries.length}
                   </Badge>
                 </TabsTrigger>
               </TabsList>
@@ -652,21 +704,33 @@ export default function DeliveryManagement() {
                   <CardHeader className="py-3">
                     <CardTitle className="text-lg flex items-center gap-2">
                       <FileCheck className="h-5 w-5 text-blue-600" />
-                      Pending Deliveries ({pendingDeliveries.length})
+                      Pending Deliveries ({filteredPendingDeliveries.length})
+                      {searchQuery && (
+                        <span className="text-sm font-normal text-muted-foreground">
+                          of {pendingDeliveries.length} total
+                        </span>
+                      )}
                     </CardTitle>
                     <CardDescription>
                       Deliveries awaiting receipt confirmation (Column AC filled, Column AD empty)
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="p-0">
-                    {pendingDeliveries.length === 0 ? (
+                    {filteredPendingDeliveries.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-12 text-center">
                         <Package className="h-12 w-12 text-blue-500 mb-3" />
-                        <h3 className="text-lg font-medium text-foreground">No Pending Deliveries</h3>
-                        <p className="text-sm text-muted-foreground">No deliveries currently pending receipt.</p>
+                        <h3 className="text-lg font-medium text-foreground">
+                          {searchQuery ? 'No Results Found' : 'No Pending Deliveries'}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          {searchQuery
+                            ? `No deliveries match "${searchQuery}". Try a different search term.`
+                            : 'No deliveries currently pending receipt.'
+                          }
+                        </p>
                       </div>
                     ) : (
-                      <div className="p-6">{renderPendingTable(pendingDeliveries)}</div>
+                      <div className="p-6">{renderPendingTable(filteredPendingDeliveries)}</div>
                     )}
                   </CardContent>
                 </Card>
@@ -677,19 +741,31 @@ export default function DeliveryManagement() {
                   <CardHeader className="py-3">
                     <CardTitle className="text-lg flex items-center gap-2">
                       <History className="h-5 w-5 text-blue-600" />
-                      Delivery History ({historyDeliveries.length})
+                      Delivery History ({filteredHistoryDeliveries.length})
+                      {searchQuery && (
+                        <span className="text-sm font-normal text-muted-foreground">
+                          of {historyDeliveries.length} total
+                        </span>
+                      )}
                     </CardTitle>
                     <CardDescription>Completed delivery receipts (Both Column AC and AD filled)</CardDescription>
                   </CardHeader>
                   <CardContent className="p-0">
-                    {historyDeliveries.length === 0 ? (
+                    {filteredHistoryDeliveries.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-12 text-center">
                         <History className="h-12 w-12 text-blue-500 mb-3" />
-                        <h3 className="text-lg font-medium text-foreground">No Delivery History</h3>
-                        <p className="text-sm text-muted-foreground">No completed deliveries found.</p>
+                        <h3 className="text-lg font-medium text-foreground">
+                          {searchQuery ? 'No Results Found' : 'No Delivery History'}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          {searchQuery
+                            ? `No deliveries match "${searchQuery}". Try a different search term.`
+                            : 'No completed deliveries found.'
+                          }
+                        </p>
                       </div>
                     ) : (
-                      <div className="p-6">{renderHistoryTable(historyDeliveries)}</div>
+                      <div className="p-6">{renderHistoryTable(filteredHistoryDeliveries)}</div>
                     )}
                   </CardContent>
                 </Card>

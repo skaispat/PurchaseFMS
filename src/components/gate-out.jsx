@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Package, FileText, Loader2, History, FileCheck, AlertTriangle, ExternalLink, X, Search } from "lucide-react" // Added Search icon
+import { Package, FileText, Loader2, History, FileCheck, AlertTriangle, ExternalLink, X, Search, RefreshCw } from "lucide-react" // Added RefreshCw icon
 
 // Shadcn UI components
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
@@ -144,6 +144,7 @@ export default function DeliveryManagement() {
   const [error, setError] = useState(null)
   const [toast, setToast] = useState(null)
   const [searchQuery, setSearchQuery] = useState("") // New state for search query
+  const [isRefreshing, setIsRefreshing] = useState(false) // Added refresh state
 
   const [formData, setFormData] = useState({
     liftNo: "",
@@ -252,6 +253,18 @@ export default function DeliveryManagement() {
       setLoadingHistory(false)
     }
   }, [])
+
+  // Added refresh function
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    await fetchDeliveryData()
+    setIsRefreshing(false)
+    setToast({
+      message: "Refreshed",
+      description: "Data has been refreshed successfully.",
+      type: "success",
+    })
+  }
 
   useEffect(() => {
     fetchDeliveryData()
@@ -579,16 +592,29 @@ export default function DeliveryManagement() {
                     </Badge>
                   </TabsTrigger>
                 </TabsList>
-                {/* Search Bar */}
-                <div className="relative w-full max-w-sm ml-4">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="text"
-                    placeholder="Search deliveries..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9 pr-4 py-2 border rounded-md w-full"
-                  />
+                <div className="flex items-center gap-3">
+                  {/* Search Bar */}
+                  <div className="relative w-full max-w-sm">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="text"
+                      placeholder="Search deliveries..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9 pr-4 py-2 border rounded-md w-full"
+                    />
+                  </div>
+                  {/* Refresh Button */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRefresh}
+                    disabled={isRefreshing}
+                    className="flex items-center gap-2"
+                  >
+                    <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
                 </div>
               </div>
 
@@ -601,7 +627,7 @@ export default function DeliveryManagement() {
                       Pending Deliveries ({filteredPendingDeliveries.length})
                     </CardTitle>
                     <CardDescription>
-                      Deliveries awaiting receipt confirmation (Column W filled, Column X empty)
+                      {/* Deliveries awaiting receipt confirmation (Column W filled, Column X empty) */}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="p-0">

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Truck, FileText, Loader2, Upload, X, History, FileCheck, AlertTriangle, Eye } from "lucide-react"
+import { Truck, FileText, Loader2, Upload, X, History, FileCheck, AlertTriangle, Eye, RefreshCw } from "lucide-react"
 import { MixerHorizontalIcon } from "@radix-ui/react-icons"
 
 // Shadcn UI components
@@ -90,6 +90,7 @@ export default function LiftMaterial() {
   const [showPopup, setShowPopup] = useState(false)
   const [error, setError] = useState(null)
   const [searchTerm, setSearchTerm] = useState("");
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
 
   // Image preview states
@@ -334,6 +335,17 @@ export default function LiftMaterial() {
     fetchPendingPOs()
     fetchDeliveryHistory()
   }, [fetchPendingPOs, fetchDeliveryHistory])
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    try {
+      await Promise.all([fetchPendingPOs(), fetchDeliveryHistory()])
+    } catch (error) {
+      console.error("Error refreshing data:", error)
+    } finally {
+      setIsRefreshing(false)
+    }
+  }
 
   const handlePOSelect = (po) => {
     setSelectedPO(po)
@@ -687,7 +699,7 @@ export default function LiftMaterial() {
       <Card className="shadow-md border-none">
         <CardContent className="p-4 sm:p-6 lg:p-8">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-            {/* Updated header section with search bar */}
+            {/* Updated header section with search bar and refresh button */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
               <TabsList className="grid w-full sm:w-[450px] grid-cols-2">
                 <TabsTrigger value="pending" className="flex items-center gap-2">
@@ -704,9 +716,9 @@ export default function LiftMaterial() {
                 </TabsTrigger>
               </TabsList>
 
-              {/* Search bar moved to the right */}
-              <div className="w-full sm:w-auto sm:flex-1 max-w-md">
-                <div className="relative">
+              {/* Search bar and refresh button */}
+              <div className="flex items-center gap-3 w-full sm:w-auto sm:flex-1 max-w-md">
+                <div className="relative flex-1">
                   <Input
                     type="text"
                     placeholder="Search POs or deliveries..."
@@ -730,6 +742,16 @@ export default function LiftMaterial() {
                     </svg>
                   </div>
                 </div>
+                <Button
+                  onClick={handleRefresh}
+                  disabled={isRefreshing}
+                  size="sm"
+                  variant="outline"
+                  className="h-10 px-3 py-2 flex items-center gap-2 whitespace-nowrap"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  {isRefreshing ? 'Refreshing...' : 'Refresh'}
+                </Button>
               </div>
             </div>
 

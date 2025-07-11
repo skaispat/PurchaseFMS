@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Package, FileText, Loader2, History, FileCheck, AlertTriangle, ExternalLink, Upload, X } from "lucide-react"
+import { Package, FileText, Loader2, History, FileCheck, AlertTriangle, ExternalLink, Upload, X, Search, RefreshCw } from "lucide-react"
 import { MixerHorizontalIcon } from "@radix-ui/react-icons"
 
 // Shadcn UI components
@@ -51,12 +51,16 @@ const HISTORY_COLUMNS_META = [
 export default function FMSManagement() {
     const [pendingReturns, setPendingReturns] = useState([])
     const [historyReturns, setHistoryReturns] = useState([])
+    const [filteredPendingReturns, setFilteredPendingReturns] = useState([])
+    const [filteredHistoryReturns, setFilteredHistoryReturns] = useState([])
+    const [searchQuery, setSearchQuery] = useState("")
     const [selectedReturn, setSelectedReturn] = useState(null)
     const [loadingPending, setLoadingPending] = useState(true)
     const [loadingHistory, setLoadingHistory] = useState(true)
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [showPopup, setShowPopup] = useState(false)
     const [error, setError] = useState(null)
+    const [isRefreshing, setIsRefreshing] = useState(false)
 
     // Form state for the action dialog
     const [formData, setFormData] = useState({
@@ -84,6 +88,25 @@ export default function FMSManagement() {
         setVisiblePendingColumns(initializeVisibility(PENDING_COLUMNS_META))
         setVisibleHistoryColumns(initializeVisibility(HISTORY_COLUMNS_META))
     }, [])
+
+    // Filter function
+    const filterData = useCallback((data, query) => {
+        if (!query.trim()) return data
+
+        const lowercaseQuery = query.toLowerCase()
+        return data.filter(item => {
+            return Object.values(item).some(value => {
+                if (value === null || value === undefined) return false
+                return String(value).toLowerCase().includes(lowercaseQuery)
+            })
+        })
+    }, [])
+
+    // Update filtered data when search query or data changes
+    useEffect(() => {
+        setFilteredPendingReturns(filterData(pendingReturns, searchQuery))
+        setFilteredHistoryReturns(filterData(historyReturns, searchQuery))
+    }, [pendingReturns, historyReturns, searchQuery, filterData])
 
     const fetchFMSData = useCallback(async () => {
         setLoadingPending(true)
@@ -164,6 +187,12 @@ export default function FMSManagement() {
     useEffect(() => {
         fetchFMSData()
     }, [fetchFMSData])
+
+    const handleRefresh = async () => {
+        setIsRefreshing(true)
+        await fetchFMSData()
+        setIsRefreshing(false)
+    }
 
     const uploadImageToDrive = async (file) => {
         try {
@@ -739,18 +768,41 @@ export default function FMSManagement() {
         <div className="p-4">
             <Card className="shadow-md border-none">
                 <CardContent className="p-4 sm:p-6 lg:p-8">
+                    {/* Search Bar and Refresh Button */}
+                    <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                        <div className="relative flex-1">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                            <Input
+                                type="text"
+                                placeholder="Search returns..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="pl-10 pr-4 py-2 w-full"
+                            />
+                        </div>
+                        <Button
+                            onClick={handleRefresh}
+                            disabled={isRefreshing}
+                            variant="outline"
+                            className="flex items-center gap-2 px-4 py-2"
+                        >
+                            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                            {isRefreshing ? 'Refreshing...' : 'Refresh'}
+                        </Button>
+                    </div>
+
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
                         <TabsList className="grid w-full sm:w-[450px] grid-cols-2 mb-6">
                             <TabsTrigger value="pending" className="flex items-center gap-2">
                                 <FileCheck className="h-4 w-4" /> Pending
                                 <Badge variant="secondary" className="ml-1.5 px-1.5 py-0.5 text-xs">
-                                    {pendingReturns.length}
+                                    {filteredPendingReturns.length}
                                 </Badge>
                             </TabsTrigger>
                             <TabsTrigger value="history" className="flex items-center gap-2">
                                 <History className="h-4 w-4" /> History
                                 <Badge variant="secondary" className="ml-1.5 px-1.5 py-0.5 text-xs">
-                                    {historyReturns.length}
+                                    {filteredHistoryReturns.length}
                                 </Badge>
                             </TabsTrigger>
                         </TabsList>
@@ -760,7 +812,7 @@ export default function FMSManagement() {
                                 "pending",
                                 "Pending Returns",
                                 "",
-                                pendingReturns,
+                                filteredPendingReturns,
                                 PENDING_COLUMNS_META,
                                 visiblePendingColumns,
                                 loadingPending,
@@ -772,7 +824,7 @@ export default function FMSManagement() {
                                 "history",
                                 "Return History",
                                 "Completed return records (Both Planned and Actual filled).",
-                                historyReturns,
+                                filteredHistoryReturns,
                                 HISTORY_COLUMNS_META,
                                 visibleHistoryColumns,
                                 loadingHistory,

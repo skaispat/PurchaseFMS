@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Package, FileText, Loader2, History, FileCheck, AlertTriangle, ExternalLink } from "lucide-react"
+import { Package, FileText, Loader2, History, FileCheck, AlertTriangle, ExternalLink, RefreshCw } from "lucide-react"
 import { MixerHorizontalIcon } from "@radix-ui/react-icons"
 
 // Shadcn UI components
@@ -63,6 +63,7 @@ export default function FMSManagement() {
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [showPopup, setShowPopup] = useState(false)
     const [error, setError] = useState(null)
+    const [isRefreshing, setIsRefreshing] = useState(false)
 
     // Form state for the action dialog
     const [formData, setFormData] = useState({
@@ -172,6 +173,12 @@ export default function FMSManagement() {
     useEffect(() => {
         fetchFMSData()
     }, [fetchFMSData])
+
+    const handleRefresh = async () => {
+        setIsRefreshing(true)
+        await fetchFMSData()
+        setIsRefreshing(false)
+    }
 
     const handleActionClick = (returnItem) => {
         setSelectedReturn(returnItem)
@@ -445,58 +452,73 @@ export default function FMSManagement() {
                                 </CardTitle>
                                 <CardDescription className="text-sm text-muted-foreground mt-0.5">{description}</CardDescription>
                             </div>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <Button variant="outline" size="sm" className="h-8 text-xs">
-                                        <MixerHorizontalIcon className="mr-1.5 h-3.5 w-3.5" /> View Columns
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-[240px] p-3">
-                                    <div className="grid gap-2">
-                                        <p className="text-sm font-medium">Toggle Columns</p>
-                                        <div className="flex items-center justify-between mt-1 mb-2">
-                                            <Button
-                                                variant="link"
-                                                size="sm"
-                                                className="p-0 h-auto text-xs"
-                                                onClick={() => handleSelectAllColumns(tabKey, columnsMeta, true)}
-                                            >
-                                                Select All
-                                            </Button>
-                                            <span className="text-gray-300 mx-1">|</span>
-                                            <Button
-                                                variant="link"
-                                                size="sm"
-                                                className="p-0 h-auto text-xs"
-                                                onClick={() => handleSelectAllColumns(tabKey, columnsMeta, false)}
-                                            >
-                                                Deselect All
-                                            </Button>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={handleRefresh}
+                                    disabled={isRefreshing}
+                                    className="h-8 text-xs"
+                                >
+                                    {isRefreshing ? (
+                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    ) : (
+                                        <RefreshCw className="h-3.5 w-3.5" />
+                                    )}
+                                </Button>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button variant="outline" size="sm" className="h-8 text-xs">
+                                            <MixerHorizontalIcon className="mr-1.5 h-3.5 w-3.5" /> View Columns
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-[240px] p-3">
+                                        <div className="grid gap-2">
+                                            <p className="text-sm font-medium">Toggle Columns</p>
+                                            <div className="flex items-center justify-between mt-1 mb-2">
+                                                <Button
+                                                    variant="link"
+                                                    size="sm"
+                                                    className="p-0 h-auto text-xs"
+                                                    onClick={() => handleSelectAllColumns(tabKey, columnsMeta, true)}
+                                                >
+                                                    Select All
+                                                </Button>
+                                                <span className="text-gray-300 mx-1">|</span>
+                                                <Button
+                                                    variant="link"
+                                                    size="sm"
+                                                    className="p-0 h-auto text-xs"
+                                                    onClick={() => handleSelectAllColumns(tabKey, columnsMeta, false)}
+                                                >
+                                                    Deselect All
+                                                </Button>
+                                            </div>
+                                            <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                                                {columnsMeta
+                                                    .filter((col) => col.toggleable)
+                                                    .map((col) => (
+                                                        <div key={`toggle-${tabKey}-${col.dataKey}`} className="flex items-center space-x-2">
+                                                            <Checkbox
+                                                                id={`toggle-${tabKey}-${col.dataKey}`}
+                                                                checked={!!visibilityState[col.dataKey]}
+                                                                onCheckedChange={(checked) => handleToggleColumn(tabKey, col.dataKey, Boolean(checked))}
+                                                                disabled={col.alwaysVisible}
+                                                            />
+                                                            <Label
+                                                                htmlFor={`toggle-${tabKey}-${col.dataKey}`}
+                                                                className="text-xs font-normal cursor-pointer"
+                                                            >
+                                                                {col.header}{" "}
+                                                                {col.alwaysVisible && <span className="text-gray-400 ml-0.5 text-xs">(Fixed)</span>}
+                                                            </Label>
+                                                        </div>
+                                                    ))}
+                                            </div>
                                         </div>
-                                        <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                                            {columnsMeta
-                                                .filter((col) => col.toggleable)
-                                                .map((col) => (
-                                                    <div key={`toggle-${tabKey}-${col.dataKey}`} className="flex items-center space-x-2">
-                                                        <Checkbox
-                                                            id={`toggle-${tabKey}-${col.dataKey}`}
-                                                            checked={!!visibilityState[col.dataKey]}
-                                                            onCheckedChange={(checked) => handleToggleColumn(tabKey, col.dataKey, Boolean(checked))}
-                                                            disabled={col.alwaysVisible}
-                                                        />
-                                                        <Label
-                                                            htmlFor={`toggle-${tabKey}-${col.dataKey}`}
-                                                            className="text-xs font-normal cursor-pointer"
-                                                        >
-                                                            {col.header}{" "}
-                                                            {col.alwaysVisible && <span className="text-gray-400 ml-0.5 text-xs">(Fixed)</span>}
-                                                        </Label>
-                                                    </div>
-                                                ))}
-                                        </div>
-                                    </div>
-                                </PopoverContent>
-                            </Popover>
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
                         </div>
                         <div className="w-full">
                             <Input
@@ -700,4 +722,3 @@ export default function FMSManagement() {
         </div>
     )
 }
-

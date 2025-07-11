@@ -17,7 +17,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
-import { Truck, History, FileText, Loader2, AlertTriangle, Info, CheckCircle, XCircle } from "lucide-react"
+import { Truck, History, FileText, Loader2, AlertTriangle, Info, CheckCircle, XCircle, Search, RefreshCw } from "lucide-react"
 
 // Constants
 const SHEET_ID = "19Za1BvjKvHT01rzDOPLS_MErnuEJd6__l7C_4lUgLlg"
@@ -310,7 +310,8 @@ export default function DeliveryTracking() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
   const [activeTab, setActiveTab] = useState("pending")
-
+  const [searchTerm, setSearchTerm] = useState("")
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   const initialFormData = {
     liftNo: "",
@@ -505,6 +506,49 @@ export default function DeliveryTracking() {
   const historyData = useMemo(() => {
     return allLabData
   }, [allLabData])
+
+  // Search functionality
+  const filteredPendingData = useMemo(() => {
+    if (!searchTerm) return pendingData
+
+    const term = searchTerm.toLowerCase()
+    return pendingData.filter((item) =>
+      item.liftNo.toLowerCase().includes(term) ||
+      item.erpPoNumber.toLowerCase().includes(term) ||
+      item.indentNumber.toLowerCase().includes(term) ||
+      item.brokerName.toLowerCase().includes(term) ||
+      item.partyName.toLowerCase().includes(term) ||
+      item.materialName.toLowerCase().includes(term) ||
+      item.billNumber.toLowerCase().includes(term) ||
+      item.truckNumber.toLowerCase().includes(term) ||
+      item.transporterName.toLowerCase().includes(term)
+    )
+  }, [pendingData, searchTerm])
+
+  const filteredHistoryData = useMemo(() => {
+    if (!searchTerm) return historyData
+
+    const term = searchTerm.toLowerCase()
+    return historyData.filter((item) =>
+      item.liftNo.toLowerCase().includes(term) ||
+      item.testingNumber.toLowerCase().includes(term) ||
+      item.needMoreTesting.toLowerCase().includes(term)
+    )
+  }, [historyData, searchTerm])
+
+  // Refresh handler
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    setRefreshTrigger((p) => p + 1)
+
+    setTimeout(() => {
+      setIsRefreshing(false)
+      toast.success("Data Refreshed", {
+        description: "Latest data has been loaded successfully.",
+        icon: <CheckCircle className="h-4 w-4" />,
+      })
+    }, 1000)
+  }
 
   // Form handling
   const handleInputChange = (e) => {
@@ -735,7 +779,7 @@ export default function DeliveryTracking() {
           </tr>
         </thead>
         <tbody>
-          {pendingData.map((item) => (
+          {filteredPendingData.map((item) => (
             <tr key={item._id} className="hover:bg-blue-50/50 border-b">
               <td className="whitespace-nowrap text-xs p-2">
                 <Button
@@ -833,7 +877,7 @@ export default function DeliveryTracking() {
           </tr>
         </thead>
         <tbody>
-          {historyData.map((item) => (
+          {filteredHistoryData.map((item) => (
             <tr key={item._id} className="hover:bg-green-50/50 border-b">
               <td className="whitespace-nowrap text-xs font-medium text-primary p-2">{item.liftNo}</td>
               <td className="whitespace-nowrap text-xs p-2">{item.testingNumber}</td>
@@ -901,18 +945,40 @@ export default function DeliveryTracking() {
     <div>
       <Card className="shadow-md border-none">
         <CardContent className="p-4 sm:p-6 lg:p-8">
+          {/* Search and Refresh Controls */}
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by Lift No, ERP Number, Party Name, Material..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 h-10"
+              />
+            </div>
+            <Button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              variant="outline"
+              className="flex items-center gap-2 h-10 px-4"
+            >
+              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Refreshing...' : 'Refresh'}
+            </Button>
+          </div>
+
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
             <TabsList className="grid w-full sm:w-[400px] grid-cols-2 mb-6">
               <TabsTrigger value="pending" className="flex items-center gap-2">
                 <FileText className="h-4 w-4" /> Pending
                 <Badge variant="secondary" className="ml-1.5 px-1.5 py-0.5 text-xs">
-                  {pendingData.length}
+                  {filteredPendingData.length}
                 </Badge>
               </TabsTrigger>
               <TabsTrigger value="history" className="flex items-center gap-2">
                 <History className="h-4 w-4" /> Lab History
                 <Badge variant="secondary" className="ml-1.5 px-1.5 py-0.5 text-xs">
-                  {historyData.length}
+                  {filteredHistoryData.length}
                 </Badge>
               </TabsTrigger>
             </TabsList>
@@ -922,18 +988,27 @@ export default function DeliveryTracking() {
                 <CardHeader className="py-3 px-4 bg-muted/30">
                   <CardTitle className="flex items-center text-md font-semibold text-foreground">
                     <FileText className="h-5 w-5 text-primary mr-2" />
-                    Pending Deliveries ({pendingData.length})
+                    Pending Deliveries ({filteredPendingData.length})
+                    {searchTerm && (
+                      <span className="text-sm font-normal text-muted-foreground ml-2">
+                        - Filtered from {pendingData.length} total
+                      </span>
+                    )}
                   </CardTitle>
                   <CardDescription className="text-sm text-muted-foreground mt-0.5">
                     Filtered by: Column AH (Not Null) AND Column AI (Null) - Starting from row 7
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-0 flex-1 flex flex-col">
-                  {pendingData.length === 0 ? (
+                  {filteredPendingData.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-10 px-4 border-2 border-dashed border-blue-200/50 bg-blue-50/50 rounded-lg mx-4 my-4 text-center flex-1">
                       <Info className="h-12 w-12 text-blue-500 mb-3" />
-                      <p className="font-medium text-foreground">No Pending Deliveries</p>
-                      <p className="text-sm text-muted-foreground text-center">All deliveries have been processed.</p>
+                      <p className="font-medium text-foreground">
+                        {searchTerm ? 'No Matching Results' : 'No Pending Deliveries'}
+                      </p>
+                      <p className="text-sm text-muted-foreground text-center">
+                        {searchTerm ? 'Try adjusting your search terms.' : 'All deliveries have been processed.'}
+                      </p>
                     </div>
                   ) : (
                     renderPendingTable()
@@ -947,18 +1022,27 @@ export default function DeliveryTracking() {
                 <CardHeader className="py-3 px-4 bg-muted/30">
                   <CardTitle className="flex items-center text-md font-semibold text-foreground">
                     <History className="h-5 w-5 text-primary mr-2" />
-                    Lab Testing History ({historyData.length})
+                    Lab Testing History ({filteredHistoryData.length})
+                    {searchTerm && (
+                      <span className="text-sm font-normal text-muted-foreground ml-2">
+                        - Filtered from {historyData.length} total
+                      </span>
+                    )}
                   </CardTitle>
                   <CardDescription className="text-sm text-muted-foreground mt-0.5">
                     Data from LAB sheet columns B to T - All lab testing records
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-0 flex-1 flex flex-col">
-                  {historyData.length === 0 ? (
+                  {filteredHistoryData.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-10 px-4 border-2 border-dashed border-green-200/50 bg-green-50/50 rounded-lg mx-4 my-4 text-center flex-1">
                       <Info className="h-12 w-12 text-green-500 mb-3" />
-                      <p className="font-medium text-foreground">No Lab Records</p>
-                      <p className="text-sm text-muted-foreground text-center">No lab testing records found.</p>
+                      <p className="font-medium text-foreground">
+                        {searchTerm ? 'No Matching Results' : 'No Lab Records'}
+                      </p>
+                      <p className="text-sm text-muted-foreground text-center">
+                        {searchTerm ? 'Try adjusting your search terms.' : 'No lab testing records found.'}
+                      </p>
                     </div>
                   ) : (
                     renderHistoryTable()

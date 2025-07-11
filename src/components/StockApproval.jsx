@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { toast } from "sonner"
-import { Loader2, AlertTriangle, Info } from "lucide-react"
+import { Loader2, AlertTriangle, Info, RefreshCw } from "lucide-react"
 
 export default function IndentApproval() {
   const [indents, setIndents] = useState([])
@@ -17,6 +17,7 @@ export default function IndentApproval() {
   const [activeTab, setActiveTab] = useState("pending")
   const [refreshData, setRefreshData] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   // Form states for the popup
   const [selectedIndent, setSelectedIndent] = useState(null)
@@ -115,6 +116,16 @@ export default function IndentApproval() {
 
     fetchData()
   }, [refreshData])
+
+  // Handle refresh button click
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    setRefreshData((prev) => !prev)
+    // Wait for the loading to complete
+    setTimeout(() => {
+      setIsRefreshing(false)
+    }, 1000)
+  }
 
   // Filter data for Pending tab (Column J not null, Column K null)
   const pendingIndents = useMemo(() => {
@@ -283,14 +294,23 @@ export default function IndentApproval() {
             </TabsTrigger>
           </TabsList>
 
-          {/* Search Bar */}
-          <div className="mb-6">
+          {/* Search Bar and Refresh Button */}
+          <div className="mb-6 flex flex-col sm:flex-row gap-4">
             <Input
-              placeholder="Search by indent number, name, material, broker, location..."
+              placeholder="Search by indent "
               className="max-w-md border-gray-300 rounded-md bg-white"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
+            <Button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              variant="outline"
+              className="flex items-center gap-2 px-4 py-2 border-gray-300 text-gray-700 hover:bg-gray-50"
+            >
+              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Refreshing...' : 'Refresh'}
+            </Button>
           </div>
 
           {/* Pending Tab */}
@@ -398,13 +418,12 @@ export default function IndentApproval() {
                         <td className="px-4 py-4 text-sm text-gray-900">{indent.approvedQty}</td>
                         <td className="px-4 py-4 text-sm">
                           <span
-                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                              indent.status === "Okay"
-                                ? "bg-green-100 text-green-800 border border-green-200"
-                                : indent.status === "Cancel"
-                                  ? "bg-red-100 text-red-800 border border-red-200"
-                                  : "bg-gray-100 text-gray-800 border border-gray-200"
-                            }`}
+                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${indent.status === "Okay"
+                              ? "bg-green-100 text-green-800 border border-green-200"
+                              : indent.status === "Cancel"
+                                ? "bg-red-100 text-red-800 border border-red-200"
+                                : "bg-gray-100 text-gray-800 border border-gray-200"
+                              }`}
                           >
                             {indent.status || "N/A"}
                           </span>
