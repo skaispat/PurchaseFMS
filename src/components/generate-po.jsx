@@ -413,7 +413,7 @@ const GeneratePO = () => {
       if (!formData.rate.trim()) newErrors.rate = "Rate is required"
       if (!formData.leadTimeToLift.trim()) newErrors.leadTimeToLift = "Lead Time is required"
       if (formData.transportingType === "Select") newErrors.transportingType = "Please select transporting type"
-      // if (!formData.poNumber.trim()) newErrors.poNumber = "Po Number is required" // Added validation for Po Number
+      if (!formData.poNumber.trim()) newErrors.poNumber = "Po Number is required" // Added validation for Po Number
     }
 
     setErrors(newErrors)
@@ -859,16 +859,16 @@ const GeneratePO = () => {
                       {errors.leadTimeToLift && <p className="text-xs text-red-600">{errors.leadTimeToLift}</p>}
                     </div>
                     <div className="space-y-1">
-                      <Label htmlFor="poNumber">ERP Number </Label>
+                      <Label htmlFor="poNumber">ERP Number *</Label>
                       <Input
                         id="poNumber"
                         name="poNumber"
                         value={formData.poNumber}
                         onChange={handleInputChange}
                         placeholder="Enter ERP Number"
-                      // className={errors.poNumber ? "border-red-500" : ""}
+                        className={errors.poNumber ? "border-red-500" : ""}
                       />
-                      {/* {errors.poNumber && <p className="text-xs text-red-600">{errors.poNumber}</p>} */}
+                      {errors.poNumber && <p className="text-xs text-red-600">{errors.poNumber}</p>}
                     </div>
                     <div className="space-y-1">
                       <Label htmlFor="paymentTerm">Payment Term</Label>

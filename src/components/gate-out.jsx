@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Package, FileText, Loader2, History, FileCheck, AlertTriangle, ExternalLink, X } from "lucide-react"
+import { Package, FileText, Loader2, History, FileCheck, AlertTriangle, ExternalLink, X, Search } from "lucide-react" // Added Search icon
 
 // Shadcn UI components
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
@@ -143,6 +143,7 @@ export default function DeliveryManagement() {
   const [showPopup, setShowPopup] = useState(false)
   const [error, setError] = useState(null)
   const [toast, setToast] = useState(null)
+  const [searchQuery, setSearchQuery] = useState("") // New state for search query
 
   const [formData, setFormData] = useState({
     liftNo: "",
@@ -311,23 +312,23 @@ export default function DeliveryManagement() {
   }
 
   const handleSubmit = async (e) => {
-    if (e) e.preventDefault()
+    if (e) e.preventDefault();
     if (!selectedDelivery) {
-      setToast({ message: "Error", description: "No delivery selected.", type: "error" })
-      return
+      setToast({ message: "Error", description: "No delivery selected.", type: "error" });
+      return;
     }
     if (!validateForm()) {
       setToast({
         message: "Validation Error",
         description: "Please fill all required fields correctly.",
         type: "error",
-      })
-      return
+      });
+      return;
     }
 
-    setIsSubmitting(true)
+    setIsSubmitting(true);
     try {
-      const now = new Date()
+      const now = new Date();
       const timestamp = now
         .toLocaleString("en-GB", {
           day: "2-digit",
@@ -338,66 +339,77 @@ export default function DeliveryManagement() {
           second: "2-digit",
           hour12: false,
         })
-        .replace(",", "")
+        .replace(",", "");
 
       // Format Vehicle Out Date to DD/MM/YYYY
-      const formattedVehicleOutDate = formatDateToDDMMYYYY(formData.vehicleOutDate)
+      const formattedVehicleOutDate = formatDateToDDMMYYYY(formData.vehicleOutDate);
 
       // Prepare update data for the existing row
-      const updateRowData = [...selectedDelivery.rawCells]
+      const updateRowData = [...selectedDelivery.rawCells];
 
-      // Ensure array has enough elements
+      // Ensure array has enough elements (28 for columns A to AB)
       while (updateRowData.length < 28) {
-        updateRowData.push("")
+        updateRowData.push("");
       }
 
-      // Update specific columns
-      updateRowData[23] = timestamp // Column X - Time stamp
-      updateRowData[25] = formData.outTime // Column Z - Out time
-      updateRowData[26] = formattedVehicleOutDate // Column AA - Vehicle Out Date (DD/MM/YYYY)
-      updateRowData[27] = formData.status // Column AB - Status
+      // Update only the specific columns we want:
+      // Column X (index 23) - Timestamp
+      updateRowData[23] = timestamp;
+
+      // Column Z (index 25) - Out time
+      updateRowData[25] = formData.outTime;
+
+      // Column AA (index 26) - Vehicle Out Date
+      updateRowData[26] = formattedVehicleOutDate;
+
+      // Column AB (index 27) - Status
+      updateRowData[27] = formData.status;
+
+      // Remove any accidental updates to other columns
+      // Specifically clear any unintended timestamp updates
+      updateRowData[15] = ""; // Column P (16)
+      // updateRowData[21] = ""; // Column V (22)
+      updateRowData[22] = ""; // Column V (22)
+      updateRowData[24] = ""; // Column V (22)
 
       const updateParams = new URLSearchParams({
         action: "update",
         sheetName: DELIVERY_SHEET,
         rowIndex: selectedDelivery.rowIndex,
         rowData: JSON.stringify(updateRowData),
-      })
+      });
 
       const response = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: updateParams.toString(),
-      })
+      });
 
-      if (!response.ok) throw new Error(`Update failed: ${response.status}`)
+      if (!response.ok) throw new Error(`Update failed: ${response.status}`);
 
-      // For opaque responses, assume success
-      if (response.type !== "opaque") {
-        const result = await response.json()
-        if (!result.success) throw new Error(result.message || "Failed to update delivery record")
-      }
+      const result = await response.json();
+      if (!result.success) throw new Error(result.message || "Failed to update delivery record");
 
       // Refresh data
-      await fetchDeliveryData()
+      await fetchDeliveryData();
 
-      handleClosePopup()
+      handleClosePopup();
       setToast({
         message: "Success",
         description: `Receipt recorded successfully for ${selectedDelivery.liftNo}.`,
         type: "success",
-      })
+      });
     } catch (error) {
-      console.error("Error submitting form:", error)
+      console.error("Error submitting form:", error);
       setToast({
         message: "Submission Error",
         description: error.message,
         type: "error",
-      })
+      });
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   const closeToast = () => setToast(null)
 
@@ -420,11 +432,25 @@ export default function DeliveryManagement() {
     )
   }
 
+  // Filtered data based on search query
+  const filteredPendingDeliveries = pendingDeliveries.filter((delivery) =>
+    Object.values(delivery).some((value) =>
+      String(value).toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  )
+
+  const filteredHistoryDeliveries = historyDeliveries.filter((delivery) =>
+    Object.values(delivery).some((value) =>
+      String(value).toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  )
+
   const renderPendingTable = (data) => (
     <div className="overflow-x-auto rounded-lg border border-border">
       <Table>
         <TableHeader className="bg-muted/50">
           <TableRow>
+            <TableHead className="font-semibold">Action</TableHead>
             <TableHead className="font-semibold">Lift No.</TableHead>
             <TableHead className="font-semibold">ERP Po Number</TableHead>
             <TableHead className="font-semibold">Indent Number</TableHead>
@@ -440,12 +466,21 @@ export default function DeliveryManagement() {
             <TableHead className="font-semibold">Qty Difference</TableHead>
             <TableHead className="font-semibold">Physical Image</TableHead>
             <TableHead className="font-semibold">Weight Slip Image</TableHead>
-            <TableHead className="font-semibold">Action</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {data.map((item) => (
             <TableRow key={item.id} className="hover:bg-muted/30">
+              <TableCell>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleReceiptClick(item)}
+                  className="h-8 px-3 py-1 text-xs"
+                >
+                  Receipt
+                </Button>
+              </TableCell>
               <TableCell className="font-medium text-primary">{renderCell(item.liftNo)}</TableCell>
               <TableCell>{renderCell(item.erpPoNumber)}</TableCell>
               <TableCell>{renderCell(item.indentNumber)}</TableCell>
@@ -461,16 +496,7 @@ export default function DeliveryManagement() {
               <TableCell>{renderCell(item.qtyDifference)}</TableCell>
               <TableCell>{renderLinkCell(item.physicalImageOfProduct)}</TableCell>
               <TableCell>{renderLinkCell(item.imageOfWeightSlip)}</TableCell>
-              <TableCell>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleReceiptClick(item)}
-                  className="h-8 px-3 py-1 text-xs"
-                >
-                  Receipt
-                </Button>
-              </TableCell>
+
             </TableRow>
           ))}
         </TableBody>
@@ -522,16 +548,6 @@ export default function DeliveryManagement() {
       )}
 
       <Card className="shadow-md border-none">
-        {/* <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-lg">
-          <CardTitle className="flex items-center gap-2 text-gray-700">
-            <Package className="h-6 w-6 text-blue-600" />
-            Delivery Management System
-          </CardTitle>
-          <CardDescription className="text-gray-600">
-            Manage delivery receipts and track delivery history.
-          </CardDescription>
-        </CardHeader> */}
-
         <CardContent className="p-6">
           {loadingPending && loadingHistory ? (
             <div className="flex flex-col justify-center items-center h-60">
@@ -546,43 +562,57 @@ export default function DeliveryManagement() {
             </div>
           ) : (
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6">
-                <TabsTrigger value="pending" className="flex items-center gap-2">
-                  <FileCheck className="h-4 w-4" />
-                  Pending
-                  <Badge variant="secondary" className="ml-1 px-1.5 py-0.5 text-xs">
-                    {pendingDeliveries.length}
-                  </Badge>
-                </TabsTrigger>
-                <TabsTrigger value="history" className="flex items-center gap-2">
-                  <History className="h-4 w-4" />
-                  History
-                  <Badge variant="secondary" className="ml-1 px-1.5 py-0.5 text-xs">
-                    {historyDeliveries.length}
-                  </Badge>
-                </TabsTrigger>
-              </TabsList>
+              <div className="flex items-center justify-between mb-6">
+                <TabsList className="grid w-auto grid-cols-2">
+                  <TabsTrigger value="pending" className="flex items-center gap-2">
+                    <FileCheck className="h-4 w-4" />
+                    Pending
+                    <Badge variant="secondary" className="ml-1 px-1.5 py-0.5 text-xs">
+                      {filteredPendingDeliveries.length}
+                    </Badge>
+                  </TabsTrigger>
+                  <TabsTrigger value="history" className="flex items-center gap-2">
+                    <History className="h-4 w-4" />
+                    History
+                    <Badge variant="secondary" className="ml-1 px-1.5 py-0.5 text-xs">
+                      {filteredHistoryDeliveries.length}
+                    </Badge>
+                  </TabsTrigger>
+                </TabsList>
+                {/* Search Bar */}
+                <div className="relative w-full max-w-sm ml-4">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    placeholder="Search deliveries..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 pr-4 py-2 border rounded-md w-full"
+                  />
+                </div>
+              </div>
+
 
               <TabsContent value="pending" className="mt-0">
                 <Card>
                   <CardHeader className="py-3">
                     <CardTitle className="text-lg flex items-center gap-2">
                       <FileCheck className="h-5 w-5 text-blue-600" />
-                      Pending Deliveries ({pendingDeliveries.length})
+                      Pending Deliveries ({filteredPendingDeliveries.length})
                     </CardTitle>
                     <CardDescription>
                       Deliveries awaiting receipt confirmation (Column W filled, Column X empty)
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="p-0">
-                    {pendingDeliveries.length === 0 ? (
+                    {filteredPendingDeliveries.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-12 text-center">
                         <Package className="h-12 w-12 text-blue-500 mb-3" />
                         <h3 className="text-lg font-medium text-foreground">No Pending Deliveries</h3>
-                        <p className="text-sm text-muted-foreground">No deliveries currently pending receipt.</p>
+                        <p className="text-sm text-muted-foreground">No deliveries currently pending receipt matching your search.</p>
                       </div>
                     ) : (
-                      <div className="p-6">{renderPendingTable(pendingDeliveries)}</div>
+                      <div className="p-6">{renderPendingTable(filteredPendingDeliveries)}</div>
                     )}
                   </CardContent>
                 </Card>
@@ -593,19 +623,19 @@ export default function DeliveryManagement() {
                   <CardHeader className="py-3">
                     <CardTitle className="text-lg flex items-center gap-2">
                       <History className="h-5 w-5 text-blue-600" />
-                      Delivery History ({historyDeliveries.length})
+                      Delivery History ({filteredHistoryDeliveries.length})
                     </CardTitle>
                     <CardDescription>Completed delivery receipts (Both Column W and X filled)</CardDescription>
                   </CardHeader>
                   <CardContent className="p-0">
-                    {historyDeliveries.length === 0 ? (
+                    {filteredHistoryDeliveries.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-12 text-center">
                         <History className="h-12 w-12 text-blue-500 mb-3" />
                         <h3 className="text-lg font-medium text-foreground">No Delivery History</h3>
-                        <p className="text-sm text-muted-foreground">No completed deliveries found.</p>
+                        <p className="text-sm text-muted-foreground">No completed deliveries found matching your search.</p>
                       </div>
                     ) : (
-                      <div className="p-6">{renderHistoryTable(historyDeliveries)}</div>
+                      <div className="p-6">{renderHistoryTable(filteredHistoryDeliveries)}</div>
                     )}
                   </CardContent>
                 </Card>

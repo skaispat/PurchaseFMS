@@ -77,6 +77,7 @@ export default function FMSManagement() {
     const [activeTab, setActiveTab] = useState("pending")
     const [visiblePendingColumns, setVisiblePendingColumns] = useState({})
     const [visibleHistoryColumns, setVisibleHistoryColumns] = useState({})
+    const [searchTerm, setSearchTerm] = useState("")
 
     useEffect(() => {
         const initializeVisibility = (columnsMeta) => {
@@ -261,6 +262,11 @@ export default function FMSManagement() {
             updateRowData[11] = formData.actualReturnQty // Column L - Actual Return Qty
             updateRowData[12] = formData.actionType // Column M - Action Type
 
+            // Conditionally update Column N (Planned) only if action type is "Make Only Debit Note"
+            if (formData.actionType === "Make Only Debit Note") {
+                updateRowData[13] = timestamp // Column N - Planned (timestamp)
+            }
+
             // Use fetch with proper error handling
             const formDataToSend = new FormData()
             formDataToSend.append("action", "update")
@@ -407,76 +413,99 @@ export default function FMSManagement() {
         return value || (value === 0 ? "0" : <span className="text-xs text-gray-400">N/A</span>)
     }
 
+    const filterData = (data, searchTerm) => {
+        if (!searchTerm) return data
+        const term = searchTerm.toLowerCase()
+        return data.filter((item) =>
+            Object.entries(item).some(([key, value]) => {
+                if (key === "actionColumn") return false
+                const stringValue = String(value || "").toLowerCase()
+                return stringValue.includes(term)
+            })
+        )
+    }
+
     const renderTableSection = (tabKey, title, description, data, columnsMeta, visibilityState, isLoading) => {
         const visibleCols = columnsMeta.filter((col) => visibilityState[col.dataKey])
+        const filteredData = filterData(data, searchTerm)
 
         return (
             <Card className="shadow-sm border border-border flex-1 flex flex-col">
                 <CardHeader className="py-3 px-4 bg-muted/30">
-                    <div className="flex justify-between items-center">
-                        <div>
-                            <CardTitle className="flex items-center text-md font-semibold text-foreground">
-                                {tabKey === "pending" ? (
-                                    <FileCheck className="h-5 w-5 text-primary mr-2" />
-                                ) : (
-                                    <History className="h-5 w-5 text-primary mr-2" />
-                                )}
-                                {title} ({data.length})
-                            </CardTitle>
-                            <CardDescription className="text-sm text-muted-foreground mt-0.5">{description}</CardDescription>
+                    <div className="flex flex-col space-y-3">
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <CardTitle className="flex items-center text-md font-semibold text-foreground">
+                                    {tabKey === "pending" ? (
+                                        <FileCheck className="h-5 w-5 text-primary mr-2" />
+                                    ) : (
+                                        <History className="h-5 w-5 text-primary mr-2" />
+                                    )}
+                                    {title} ({filteredData.length}/{data.length})
+                                </CardTitle>
+                                <CardDescription className="text-sm text-muted-foreground mt-0.5">{description}</CardDescription>
+                            </div>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button variant="outline" size="sm" className="h-8 text-xs">
+                                        <MixerHorizontalIcon className="mr-1.5 h-3.5 w-3.5" /> View Columns
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[240px] p-3">
+                                    <div className="grid gap-2">
+                                        <p className="text-sm font-medium">Toggle Columns</p>
+                                        <div className="flex items-center justify-between mt-1 mb-2">
+                                            <Button
+                                                variant="link"
+                                                size="sm"
+                                                className="p-0 h-auto text-xs"
+                                                onClick={() => handleSelectAllColumns(tabKey, columnsMeta, true)}
+                                            >
+                                                Select All
+                                            </Button>
+                                            <span className="text-gray-300 mx-1">|</span>
+                                            <Button
+                                                variant="link"
+                                                size="sm"
+                                                className="p-0 h-auto text-xs"
+                                                onClick={() => handleSelectAllColumns(tabKey, columnsMeta, false)}
+                                            >
+                                                Deselect All
+                                            </Button>
+                                        </div>
+                                        <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                                            {columnsMeta
+                                                .filter((col) => col.toggleable)
+                                                .map((col) => (
+                                                    <div key={`toggle-${tabKey}-${col.dataKey}`} className="flex items-center space-x-2">
+                                                        <Checkbox
+                                                            id={`toggle-${tabKey}-${col.dataKey}`}
+                                                            checked={!!visibilityState[col.dataKey]}
+                                                            onCheckedChange={(checked) => handleToggleColumn(tabKey, col.dataKey, Boolean(checked))}
+                                                            disabled={col.alwaysVisible}
+                                                        />
+                                                        <Label
+                                                            htmlFor={`toggle-${tabKey}-${col.dataKey}`}
+                                                            className="text-xs font-normal cursor-pointer"
+                                                        >
+                                                            {col.header}{" "}
+                                                            {col.alwaysVisible && <span className="text-gray-400 ml-0.5 text-xs">(Fixed)</span>}
+                                                        </Label>
+                                                    </div>
+                                                ))}
+                                        </div>
+                                    </div>
+                                </PopoverContent>
+                            </Popover>
                         </div>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button variant="outline" size="sm" className="h-8 text-xs">
-                                    <MixerHorizontalIcon className="mr-1.5 h-3.5 w-3.5" /> View Columns
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-[240px] p-3">
-                                <div className="grid gap-2">
-                                    <p className="text-sm font-medium">Toggle Columns</p>
-                                    <div className="flex items-center justify-between mt-1 mb-2">
-                                        <Button
-                                            variant="link"
-                                            size="sm"
-                                            className="p-0 h-auto text-xs"
-                                            onClick={() => handleSelectAllColumns(tabKey, columnsMeta, true)}
-                                        >
-                                            Select All
-                                        </Button>
-                                        <span className="text-gray-300 mx-1">|</span>
-                                        <Button
-                                            variant="link"
-                                            size="sm"
-                                            className="p-0 h-auto text-xs"
-                                            onClick={() => handleSelectAllColumns(tabKey, columnsMeta, false)}
-                                        >
-                                            Deselect All
-                                        </Button>
-                                    </div>
-                                    <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                                        {columnsMeta
-                                            .filter((col) => col.toggleable)
-                                            .map((col) => (
-                                                <div key={`toggle-${tabKey}-${col.dataKey}`} className="flex items-center space-x-2">
-                                                    <Checkbox
-                                                        id={`toggle-${tabKey}-${col.dataKey}`}
-                                                        checked={!!visibilityState[col.dataKey]}
-                                                        onCheckedChange={(checked) => handleToggleColumn(tabKey, col.dataKey, Boolean(checked))}
-                                                        disabled={col.alwaysVisible}
-                                                    />
-                                                    <Label
-                                                        htmlFor={`toggle-${tabKey}-${col.dataKey}`}
-                                                        className="text-xs font-normal cursor-pointer"
-                                                    >
-                                                        {col.header}{" "}
-                                                        {col.alwaysVisible && <span className="text-gray-400 ml-0.5 text-xs">(Fixed)</span>}
-                                                    </Label>
-                                                </div>
-                                            ))}
-                                    </div>
-                                </div>
-                            </PopoverContent>
-                        </Popover>
+                        <div className="w-full">
+                            <Input
+                                placeholder={`Search ${title.toLowerCase()}...`}
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full"
+                            />
+                        </div>
                     </div>
                 </CardHeader>
                 <CardContent className="p-0 flex-1 flex flex-col">
@@ -491,12 +520,12 @@ export default function FMSManagement() {
                             <p className="font-medium text-destructive">Error Loading Data</p>
                             <p className="text-sm text-muted-foreground max-w-md">{error}</p>
                         </div>
-                    ) : data.length === 0 ? (
+                    ) : filteredData.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-10 px-4 border-2 border-dashed border-blue-200/50 bg-blue-50/50 rounded-lg mx-4 my-4 text-center flex-1">
                             <Package className="h-12 w-12 text-blue-500 mb-3" />
                             <p className="font-medium text-foreground">No Data Found</p>
                             <p className="text-sm text-muted-foreground text-center">
-                                {tabKey === "pending" ? "No pending returns found." : "No return history found."}
+                                {searchTerm ? "No results match your search." : tabKey === "pending" ? "No pending returns found." : "No return history found."}
                             </p>
                         </div>
                     ) : (
@@ -512,7 +541,7 @@ export default function FMSManagement() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {data.map((item) => (
+                                    {filteredData.map((item) => (
                                         <tr key={item.id} className="hover:bg-blue-50 border-b border-gray-100">
                                             {visibleCols.map((column) => (
                                                 <td
@@ -557,7 +586,7 @@ export default function FMSManagement() {
                             {renderTableSection(
                                 "pending",
                                 "Pending Returns",
-                                "Returns awaiting processing (Planned1 filled, Actual1 empty).",
+                                "",
                                 pendingReturns,
                                 PENDING_COLUMNS_META,
                                 visiblePendingColumns,

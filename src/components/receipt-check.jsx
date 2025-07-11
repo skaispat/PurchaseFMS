@@ -1036,8 +1036,9 @@ export default function DeliveryManagement() {
                   <Input
                     name="qty"
                     value={returnFormData.qty}
-                    readOnly
-                    className="bg-gray-100"
+                    onChange={handleReturnInputChange}
+                    // className="bg-gray-100"
+                    placeholder="Enter Qty"
                   />
                 </div>
               </div>
@@ -1148,7 +1149,7 @@ export default function DeliveryManagement() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Good">Good</SelectItem>
-                      <SelectItem value="Damaged">Bad</SelectItem>
+                      <SelectItem value="Bad">Bad</SelectItem>
                       {/* <SelectItem value="Partially Damaged">Partially Damaged</SelectItem> */}
                     </SelectContent>
                   </Select>

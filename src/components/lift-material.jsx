@@ -89,6 +89,8 @@ export default function LiftMaterial() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showPopup, setShowPopup] = useState(false)
   const [error, setError] = useState(null)
+  const [searchTerm, setSearchTerm] = useState("");
+
 
   // Image preview states
   const [imagePreview, setImagePreview] = useState({
@@ -161,6 +163,29 @@ export default function LiftMaterial() {
   //   setVisiblePoColumns(initializeVisibility(PO_COLUMNS_META))
   //   setVisibleDeliveryColumns(initializeVisibility(DELIVERY_COLUMNS_META))
   // }, [])
+
+  const filteredPOs = pendingPOs.filter(po => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      po.erpPoNumber.toLowerCase().includes(searchLower) ||
+      po.indentNumber.toLowerCase().includes(searchLower) ||
+      po.materialName.toLowerCase().includes(searchLower) ||
+      po.brokerName.toLowerCase().includes(searchLower) ||
+      po.partyName.toLowerCase().includes(searchLower)
+    );
+  });
+
+  const filteredDeliveries = deliveryHistory.filter(delivery => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      delivery.liftNo.toLowerCase().includes(searchLower) ||
+      delivery.erpPoNumber.toLowerCase().includes(searchLower) ||
+      delivery.indentNumber.toLowerCase().includes(searchLower) ||
+      delivery.brokerName.toLowerCase().includes(searchLower) ||
+      delivery.partyName.toLowerCase().includes(searchLower) ||
+      delivery.materialName.toLowerCase().includes(searchLower)
+    );
+  });
 
   const fetchPendingPOs = useCallback(async () => {
     setLoadingPOs(true)
@@ -662,20 +687,51 @@ export default function LiftMaterial() {
       <Card className="shadow-md border-none">
         <CardContent className="p-4 sm:p-6 lg:p-8">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-            <TabsList className="grid w-full sm:w-[450px] grid-cols-2 mb-6">
-              <TabsTrigger value="pending" className="flex items-center gap-2">
-                <FileCheck className="h-4 w-4" /> Pending
-                <Badge variant="secondary" className="ml-1.5 px-1.5 py-0.5 text-xs">
-                  {pendingPOs.length}
-                </Badge>
-              </TabsTrigger>
-              <TabsTrigger value="history" className="flex items-center gap-2">
-                <History className="h-4 w-4" /> History
-                <Badge variant="secondary" className="ml-1.5 px-1.5 py-0.5 text-xs">
-                  {deliveryHistory.length}
-                </Badge>
-              </TabsTrigger>
-            </TabsList>
+            {/* Updated header section with search bar */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+              <TabsList className="grid w-full sm:w-[450px] grid-cols-2">
+                <TabsTrigger value="pending" className="flex items-center gap-2">
+                  <FileCheck className="h-4 w-4" /> Pending
+                  <Badge variant="secondary" className="ml-1.5 px-1.5 py-0.5 text-xs">
+                    {filteredPOs.length}/{pendingPOs.length}
+                  </Badge>
+                </TabsTrigger>
+                <TabsTrigger value="history" className="flex items-center gap-2">
+                  <History className="h-4 w-4" /> History
+                  <Badge variant="secondary" className="ml-1.5 px-1.5 py-0.5 text-xs">
+                    {filteredDeliveries.length}/{deliveryHistory.length}
+                  </Badge>
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Search bar moved to the right */}
+              <div className="w-full sm:w-auto sm:flex-1 max-w-md">
+                <div className="relative">
+                  <Input
+                    type="text"
+                    placeholder="Search POs or deliveries..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 pr-4 py-2 h-10 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full"
+                  />
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg
+                      className="h-5 w-5 text-gray-400"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                      />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             <TabsContent value="pending" className="flex-1 flex flex-col mt-0">
               <Card className="shadow-sm border border-border flex-1 flex flex-col">
@@ -776,7 +832,7 @@ export default function LiftMaterial() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {pendingPOs.map((po) => (
+                          {filteredPOs.map((po) => (
                             <TableRow key={po.id} className="hover:bg-blue-50/50">
                               {PO_COLUMNS_META.filter((col) => visiblePoColumns[col.dataKey]).map((column) => (
                                 <TableCell
@@ -910,7 +966,7 @@ export default function LiftMaterial() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {deliveryHistory.map((delivery) => (
+                          {filteredDeliveries.map((delivery) => (
                             <TableRow key={delivery.id} className="hover:bg-blue-50/50">
                               {DELIVERY_COLUMNS_META.filter((col) => visibleDeliveryColumns[col.dataKey]).map(
                                 (column) => (
@@ -941,7 +997,7 @@ export default function LiftMaterial() {
           <Card className="w-full max-w-4xl max-h-[95vh] flex flex-col shadow-2xl">
             <CardHeader className="px-7 py-5 bg-gray-50 border-b border-gray-200 flex justify-between items-center rounded-t-xl">
               <CardTitle className="font-semibold text-lg text-gray-800">
-                Record Material Lift for <span className="text-blue-600">{selectedPO.erpPoNumber}</span>
+                Lift for PO Number  <span className="text-blue-600">{selectedPO.erpPoNumber}</span>
               </CardTitle>
               <Button
                 variant="ghost"

@@ -138,7 +138,7 @@ const formatTime = (timeValue) => {
 
     // Format minutes with leading zero if needed
     const formattedMinutes = String(mins).padStart(2, '0')
-    
+
     return `${hour12}:${formattedMinutes} ${ampm}`
   }
 
@@ -174,7 +174,7 @@ const formatTime = (timeValue) => {
 
     // Format minutes with leading zero if needed
     const formattedMinutes = minutes.padStart(2, '0')
-    
+
     return `${hour12}:${formattedMinutes} ${ampm}`
   }
 
@@ -310,6 +310,7 @@ export default function DeliveryTracking() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
   const [activeTab, setActiveTab] = useState("pending")
+
 
   const initialFormData = {
     liftNo: "",
@@ -508,7 +509,7 @@ export default function DeliveryTracking() {
   // Form handling
   const handleInputChange = (e) => {
     const { name, value, type, files } = e.target
-    
+
     if (type === 'file' && name === 'photo') {
       // Handle file upload
       const file = files[0]
@@ -518,7 +519,7 @@ export default function DeliveryTracking() {
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }))
     }
-    
+
     if (formErrors[name]) setFormErrors((prev) => ({ ...prev, [name]: null }))
   }
 
@@ -619,7 +620,7 @@ export default function DeliveryTracking() {
 
       // Handle photo upload
       let photoLink = ""
-      
+
       if (formData.photo && formData.photo instanceof File) {
         try {
           photoLink = await uploadImageToGoogleDrive(formData.photo)
@@ -712,15 +713,20 @@ export default function DeliveryTracking() {
       <table className="w-full">
         <thead className="bg-muted/50">
           <tr>
+            <th className="whitespace-nowrap text-xs text-left p-2 border-b">Action</th>
+            <th className="whitespace-nowrap text-xs text-left p-2 border-b">Lift No.</th>
+            <th className="whitespace-nowrap text-xs text-left p-2 border-b">ERP Number</th>
+            <th className="whitespace-nowrap text-xs text-left p-2 border-b">Indent NO.</th>
+            <th className="whitespace-nowrap text-xs text-left p-2 border-b">Broker Name</th>
             <th className="whitespace-nowrap text-xs text-left p-2 border-b">Party Name</th>
             <th className="whitespace-nowrap text-xs text-left p-2 border-b">Material Name</th>
-            <th className="whitespace-nowrap text-xs text-left p-2 border-b">Qty</th>
+            <th className="whitespace-nowrap text-xs text-left p-2 border-b">Bill Qty</th>
             <th className="whitespace-nowrap text-xs text-left p-2 border-b">Bill Number</th>
-            <th className="whitespace-nowrap text-xs text-left p-2 border-b">Truck Number</th>
-            <th className="whitespace-nowrap text-xs text-left p-2 border-b">Driver Number</th>
+            <th className="whitespace-nowrap text-xs text-left p-2 border-b">Truck No.</th>
+            <th className="whitespace-nowrap text-xs text-left p-2 border-b">Driver No.</th>
             <th className="whitespace-nowrap text-xs text-left p-2 border-b">Transporter Name</th>
             <th className="whitespace-nowrap text-xs text-left p-2 border-b">Physical Condition</th>
-            <th className="whitespace-nowrap text-xs text-left p-2 border-b">Qty Difference</th>
+            <th className="whitespace-nowrap text-xs text-left p-2 border-b">Received Qty</th>
             <th className="whitespace-nowrap text-xs text-left p-2 border-b">Physical Image</th>
             <th className="whitespace-nowrap text-xs text-left p-2 border-b">Weight Slip Image</th>
             <th className="whitespace-nowrap text-xs text-left p-2 border-b">Out Time</th>

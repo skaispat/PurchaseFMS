@@ -417,6 +417,13 @@ export default function DeliveryManagement() {
       updateRowData[29] = timestamp // Column AD - Time stamp
       updateRowData[31] = formData.status // Column AF - Status
       updateRowData[32] = formData.remarks // Column AG - Remarks
+      updateRowData[15] = ""; // Column P (16)
+      updateRowData[28] = ""; // Column P (16)
+      updateRowData[22] = ""; // Column P (16)
+      updateRowData[30] = ""; // Column P (16)
+      updateRowData[33] = ""; // Column P (16)
+
+
 
       const updateParams = new URLSearchParams({
         action: "update",
@@ -486,31 +493,41 @@ export default function DeliveryManagement() {
       <Table>
         <TableHeader className="bg-muted/50">
           <TableRow>
+            <TableHead className="font-semibold">Action</TableHead>
             <TableHead className="font-semibold">Lift No.</TableHead>
             <TableHead className="font-semibold">ERP Po Number</TableHead>
             <TableHead className="font-semibold">Indent Number</TableHead>
             <TableHead className="font-semibold">Broker Name</TableHead>
             <TableHead className="font-semibold">Party Name</TableHead>
             <TableHead className="font-semibold">Material Name</TableHead>
-            <TableHead className="font-semibold">Qty</TableHead>
+            <TableHead className="font-semibold">Bill Qty</TableHead>
             <TableHead className="font-semibold">Bill Number</TableHead>
             <TableHead className="font-semibold">Truck Number</TableHead>
             <TableHead className="font-semibold">Driver Number</TableHead>
             <TableHead className="font-semibold">Bill Image</TableHead>
             <TableHead className="font-semibold">Transporter Name</TableHead>
             <TableHead className="font-semibold">Physical Condition</TableHead>
-            <TableHead className="font-semibold">Qty Difference</TableHead>
+            <TableHead className="font-semibold">Received Qty</TableHead>
             <TableHead className="font-semibold">Physical Image</TableHead>
             <TableHead className="font-semibold">Weight Slip Image</TableHead>
             <TableHead className="font-semibold">Out Time</TableHead>
             <TableHead className="font-semibold">Vehicle Out Date</TableHead>
             <TableHead className="font-semibold">Planned</TableHead>
-            <TableHead className="font-semibold">Action</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {data.map((item) => (
             <TableRow key={item.id} className="hover:bg-muted/30">
+              <TableCell>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleReceiptClick(item)}
+                  className="h-8 px-3 py-1 text-xs"
+                >
+                  Receipt
+                </Button>
+              </TableCell>
               <TableCell className="font-medium text-primary">{renderCell(item.liftNo)}</TableCell>
               <TableCell>{renderCell(item.erpPoNumber)}</TableCell>
               <TableCell>{renderCell(item.indentNumber)}</TableCell>
@@ -530,16 +547,6 @@ export default function DeliveryManagement() {
               <TableCell>{renderCell(formatTimeTo12Hour(item.outTime))}</TableCell>
               <TableCell>{renderCell(formatDateToDDMMYYYY(item.vehicleOutDate))}</TableCell>
               <TableCell>{renderCell(formatPlannedDate(item.planned))}</TableCell>
-              <TableCell>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleReceiptClick(item)}
-                  className="h-8 px-3 py-1 text-xs"
-                >
-                  Receipt
-                </Button>
-              </TableCell>
             </TableRow>
           ))}
         </TableBody>
