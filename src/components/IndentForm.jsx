@@ -119,7 +119,7 @@ export default function IndentForm() {
       [name]: value,
     }));
     if (errors[name]) {
-        setErrors(prevErrors => ({...prevErrors, [name]: null}));
+      setErrors(prevErrors => ({ ...prevErrors, [name]: null }));
     }
   };
 
@@ -129,12 +129,12 @@ export default function IndentForm() {
       [name]: value,
     }));
     if (errors[name]) {
-      setErrors(prevErrors => ({...prevErrors, [name]: null}));
+      setErrors(prevErrors => ({ ...prevErrors, [name]: null }));
     }
   };
 
   const validateForm = () => {
-  const newErrors = {};
+    const newErrors = {};
     if (!formData.indenterName) newErrors.indenterName = "Indenter Name is required.";
     if (!formData.materialName) newErrors.materialName = "Material Name is required.";
     if (!formData.brokerName.trim()) newErrors.brokerName = "Broker Name is required.";
@@ -151,16 +151,16 @@ export default function IndentForm() {
     e.preventDefault();
     if (!validateForm()) {
       const firstErrorKey = Object.keys(errors).find(key => errors[key]);
-      if(firstErrorKey) {
-          toast.error("Validation Error", {
-              description: errors[firstErrorKey],
-              icon: <XCircle className="h-4 w-4" />,
-          });
+      if (firstErrorKey) {
+        toast.error("Validation Error", {
+          description: errors[firstErrorKey],
+          icon: <XCircle className="h-4 w-4" />,
+        });
       } else {
-          toast.error("Validation Error", {
-              description: "Please fill all required fields correctly.",
-              icon: <XCircle className="h-4 w-4" />,
-          });
+        toast.error("Validation Error", {
+          description: "Please fill all required fields correctly.",
+          icon: <XCircle className="h-4 w-4" />,
+        });
       }
       return;
     }
@@ -213,10 +213,10 @@ export default function IndentForm() {
       try {
         const result = JSON.parse(resultText);
         if (result.status !== "success" && result.result !== "success" && result.message !== "Row inserted successfully") {
-            throw new Error(result.message || "Submission reported an issue by Apps Script (JSON).");
+          throw new Error(result.message || "Submission reported an issue by Apps Script (JSON).");
         }
       } catch (jsonError) {
-          console.warn("handleSubmit: Apps Script response was not valid JSON. Assuming success based on response.ok if no error thrown yet.", jsonError);
+        console.warn("handleSubmit: Apps Script response was not valid JSON. Assuming success based on response.ok if no error thrown yet.", jsonError);
       }
 
       setLastIndentNumberNumeric(nextNumericPart);
@@ -263,144 +263,144 @@ export default function IndentForm() {
 
   return (
     <div className="min-h-screen w-full bg-slate-50 p-4 sm:p-6 lg:p-6">
-        <Card className="w-full shadow-lg border-none">
-          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-lg">
-            <CardTitle className="flex items-center gap-2 text-gray-700">
-              <FileText className="h-6 w-6 text-blue-600" />
-              Create New Indent
-            </CardTitle>
-            {/* <CardDescription className="text-gray-600">Fill out the form to generate a new indent with an IN Number</CardDescription> */}
-          </CardHeader>
+      <Card className="w-full shadow-lg border-none">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-lg">
+          <CardTitle className="flex items-center gap-2 text-gray-700">
+            <FileText className="h-6 w-6 text-blue-600" />
+            Create New Indent
+          </CardTitle>
+          {/* <CardDescription className="text-gray-600">Fill out the form to generate a new indent with an IN Number</CardDescription> */}
+        </CardHeader>
 
-          <CardContent className="p-6 sm:p-8">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                
-                {/* Indenter Name */}
-                <div>
-                  <Label htmlFor="indenterName">Indenter Name <span className="text-red-500">*</span></Label>
-                  <Select name="indenterName" value={formData.indenterName} onValueChange={(value) => handleSelectChange("indenterName", value)}>
-                    <SelectTrigger className={`mt-1 ${errors.indenterName ? "border-red-500" : ""}`}>
-                      <SelectValue placeholder="Select indenter" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {dropdownOptions.indenterName.map((option, index) => (
-                        <SelectItem key={`indenter-${index}`} value={option}>{option}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.indenterName && <p className="text-red-500 text-xs mt-1">{errors.indenterName}</p>}
-                </div>
+        <CardContent className="p-6 sm:p-8">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
-                {/* Material Name */}
-                <div>
-                  <Label htmlFor="materialName">Material Name <span className="text-red-500">*</span></Label>
-                  <Select name="materialName" value={formData.materialName} onValueChange={(value) => handleSelectChange("materialName", value)}>
-                    <SelectTrigger className={`mt-1 ${errors.materialName ? "border-red-500" : ""}`}>
-                      <SelectValue placeholder="Select material" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {dropdownOptions.materialName.map((option, index) => (
-                        <SelectItem key={`material-${index}`} value={option}>{option}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.materialName && <p className="text-red-500 text-xs mt-1">{errors.materialName}</p>}
-                </div>
-
-                {/* Division */}
-                <div>
-                  <Label htmlFor="division">Division <span className="text-red-500">*</span></Label>
-                  <Select name="division" value={formData.division} onValueChange={(value) => handleSelectChange("division", value)}>
-                    <SelectTrigger className={`mt-1 ${errors.division ? "border-red-500" : ""}`}>
-                      <SelectValue placeholder="Select division" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {dropdownOptions.division.map((option, index) => (
-                        <SelectItem key={`division-${index}`} value={option}>{option}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.division && <p className="text-red-500 text-xs mt-1">{errors.division}</p>}
-                </div>
-
-                {/* Broker Name */}
-                <div>
-                  <Label htmlFor="brokerName">Broker Name <span className="text-red-500">*</span></Label>
-                  <Input 
-                    id="brokerName" 
-                    type="text" 
-                    name="brokerName" 
-                    placeholder="Enter broker name" 
-                    value={formData.brokerName} 
-                    onChange={handleChange} 
-                    className={`mt-1 ${errors.brokerName ? "border-red-500" : ""}`}
-                  />
-                  {errors.brokerName && <p className="text-red-500 text-xs mt-1">{errors.brokerName}</p>}
-                </div>
-
-                {/* Quantity */}
-                <div>
-                  <Label htmlFor="qty">Quantity <span className="text-red-500">*</span></Label>
-                  <Input 
-                    id="qty" 
-                    type="number" 
-                    name="qty" 
-                    placeholder="Enter quantity" 
-                    value={formData.qty} 
-                    onChange={handleChange} 
-                    min="1"
-                    className={`mt-1 ${errors.qty ? "border-red-500" : ""}`}
-                  />
-                  {errors.qty && <p className="text-red-500 text-xs mt-1">{errors.qty}</p>}
-                </div>
-
-                {/* Location */}
-                <div>
-                  <Label htmlFor="location">Location <span className="text-red-500">*</span></Label>
-                  <Input 
-                    id="location" 
-                    type="text" 
-                    name="location" 
-                    placeholder="Enter location" 
-                    value={formData.location} 
-                    onChange={handleChange} 
-                    className={`mt-1 ${errors.location ? "border-red-500" : ""}`}
-                  />
-                  {errors.location && <p className="text-red-500 text-xs mt-1">{errors.location}</p>}
-                </div>
-
-              </div>
-
-              {/* Remarks - Full width */}
+              {/* Indenter Name */}
               <div>
-                <Label htmlFor="remarks">Remarks</Label>
-                <Textarea 
-                  id="remarks" 
-                  name="remarks" 
-                  placeholder="Enter any additional remarks or requirements" 
-                  value={formData.remarks} 
-                  onChange={handleChange} 
-                  className={`min-h-[80px] mt-1 ${errors.remarks ? "border-red-500" : ""}`}
-                />
-                {errors.remarks && <p className="text-red-500 text-xs mt-1">{errors.remarks}</p>}
+                <Label htmlFor="indenterName">Indenter Name <span className="text-red-500">*</span></Label>
+                <Select name="indenterName" value={formData.indenterName} onValueChange={(value) => handleSelectChange("indenterName", value)}>
+                  <SelectTrigger className={`mt-1 ${errors.indenterName ? "border-red-500" : ""}`}>
+                    <SelectValue placeholder="Select indenter" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {dropdownOptions.indenterName.map((option, index) => (
+                      <SelectItem key={`indenter-${index}`} value={option}>{option}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.indenterName && <p className="text-red-500 text-xs mt-1">{errors.indenterName}</p>}
               </div>
 
-              <div className="pt-4">
-                <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold" disabled={isSubmitting}>
-                  {isSubmitting ? ( 
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
-                      Submitting...
-                    </> 
-                  ) : ( 
-                    "Create Indent" 
-                  )}
-                </Button>
+              {/* Material Name */}
+              <div>
+                <Label htmlFor="materialName">Material Name <span className="text-red-500">*</span></Label>
+                <Select name="materialName" value={formData.materialName} onValueChange={(value) => handleSelectChange("materialName", value)}>
+                  <SelectTrigger className={`mt-1 ${errors.materialName ? "border-red-500" : ""}`}>
+                    <SelectValue placeholder="Select material" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {dropdownOptions.materialName.map((option, index) => (
+                      <SelectItem key={`material-${index}`} value={option}>{option}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.materialName && <p className="text-red-500 text-xs mt-1">{errors.materialName}</p>}
               </div>
-            </form>
-          </CardContent>
-        </Card>
+
+              {/* Division */}
+              <div>
+                <Label htmlFor="division">Division <span className="text-red-500">*</span></Label>
+                <Select name="division" value={formData.division} onValueChange={(value) => handleSelectChange("division", value)}>
+                  <SelectTrigger className={`mt-1 ${errors.division ? "border-red-500" : ""}`}>
+                    <SelectValue placeholder="Select division" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {dropdownOptions.division.map((option, index) => (
+                      <SelectItem key={`division-${index}`} value={option}>{option}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.division && <p className="text-red-500 text-xs mt-1">{errors.division}</p>}
+              </div>
+
+              {/* Broker Name */}
+              <div>
+                <Label htmlFor="brokerName">Broker Name <span className="text-red-500">*</span></Label>
+                <Input
+                  id="brokerName"
+                  type="text"
+                  name="brokerName"
+                  placeholder="Enter broker name"
+                  value={formData.brokerName}
+                  onChange={handleChange}
+                  className={`mt-1 ${errors.brokerName ? "border-red-500" : ""}`}
+                />
+                {errors.brokerName && <p className="text-red-500 text-xs mt-1">{errors.brokerName}</p>}
+              </div>
+
+              {/* Quantity */}
+              <div>
+                <Label htmlFor="qty">Quantity <span className="text-red-500">*</span></Label>
+                <Input
+                  id="qty"
+                  type="number"
+                  name="qty"
+                  placeholder="Enter quantity"
+                  value={formData.qty}
+                  onChange={handleChange}
+                  min="1"
+                  className={`mt-1 ${errors.qty ? "border-red-500" : ""}`}
+                />
+                {errors.qty && <p className="text-red-500 text-xs mt-1">{errors.qty}</p>}
+              </div>
+
+              {/* Location */}
+              <div>
+                <Label htmlFor="location">Location <span className="text-red-500">*</span></Label>
+                <Input
+                  id="location"
+                  type="text"
+                  name="location"
+                  placeholder="Enter location"
+                  value={formData.location}
+                  onChange={handleChange}
+                  className={`mt-1 ${errors.location ? "border-red-500" : ""}`}
+                />
+                {errors.location && <p className="text-red-500 text-xs mt-1">{errors.location}</p>}
+              </div>
+
+            </div>
+
+            {/* Remarks - Full width */}
+            <div>
+              <Label htmlFor="remarks">Remarks</Label>
+              <Textarea
+                id="remarks"
+                name="remarks"
+                placeholder="Enter any additional remarks or requirements"
+                value={formData.remarks}
+                onChange={handleChange}
+                className={`min-h-[80px] mt-1 ${errors.remarks ? "border-red-500" : ""}`}
+              />
+              {errors.remarks && <p className="text-red-500 text-xs mt-1">{errors.remarks}</p>}
+            </div>
+
+            <div className="pt-4">
+              <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  "Create Indent"
+                )}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }
