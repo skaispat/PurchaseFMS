@@ -534,7 +534,7 @@ const GeneratePO = () => {
     setFormData({
       indentNumber: indent.indentNumber,
       materialName: indent.materialName,
-      brokerName: indent.indenterName, // Changed from indent.brokerName to indent.indenterName
+      brokerName: indent.brokerName, // Changed from indent.brokerName to indent.indenterName
       partyName: "",
       qty: indent.approvedQty,
       rate: "",
