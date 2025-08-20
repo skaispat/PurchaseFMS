@@ -1192,20 +1192,23 @@ export default function Dashboard() {
                         </TableHeader>
                         <TableBody>
                           {purchaseTabTables.inTransit.length > 0 ? (
-                            purchaseTabTables.inTransit.map((delivery) => (
-                              <TableRow key={delivery.id} className="hover:bg-blue-50/50 border-b border-slate-100 transition-colors duration-200">
-                                <TableCell className="font-bold text-blue-600">{delivery.erpPoNumber}</TableCell>
-                                <TableCell className="max-w-xs">
-                                  <div className="truncate font-medium" title={delivery.materialName}>
-                                    {delivery.materialName}
-                                  </div>
-                                </TableCell>
-                                <TableCell className="font-medium text-slate-700">{delivery.partyName}</TableCell>
-                                <TableCell className="font-medium text-slate-700">{delivery.truckNumber || '-'}</TableCell>
-                                <TableCell className="font-medium text-slate-700">{delivery.timestamp ? format(delivery.timestamp, "dd/MM/yyyy") : '-'}</TableCell>
-                                <TableCell className="text-right font-bold text-slate-900">{delivery.qty.toLocaleString()}</TableCell>
-                              </TableRow>
-                            ))
+                            purchaseTabTables.inTransit
+                              .slice()
+                              .sort(((a, b) => new Date(b.timestamp) - new Date(a.timestamp)))
+                              .map((delivery) => (
+                                <TableRow key={delivery.id} className="hover:bg-blue-50/50 border-b border-slate-100 transition-colors duration-200">
+                                  <TableCell className="font-bold text-blue-600">{delivery.erpPoNumber}</TableCell>
+                                  <TableCell className="max-w-xs">
+                                    <div className="truncate font-medium" title={delivery.materialName}>
+                                      {delivery.materialName}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="font-medium text-slate-700">{delivery.partyName}</TableCell>
+                                  <TableCell className="font-medium text-slate-700">{delivery.truckNumber || '-'}</TableCell>
+                                  <TableCell className="font-medium text-slate-700">{delivery.timestamp ? format(delivery.timestamp, "dd/MM/yyyy") : '-'}</TableCell>
+                                  <TableCell className="text-right font-bold text-slate-900">{delivery.qty.toLocaleString()}</TableCell>
+                                </TableRow>
+                              ))
                           ) : (
                             <TableRow>
                               <TableCell colSpan={6} className="text-center h-40 text-slate-500">
@@ -1258,22 +1261,25 @@ export default function Dashboard() {
                         </TableHeader>
                         <TableBody>
                           {purchaseTabTables.received.length > 0 ? (
-                            purchaseTabTables.received.map((delivery) => (
-                              <TableRow key={delivery.id} className="hover:bg-emerald-50/50 border-b border-slate-100 transition-colors duration-200">
-                                <TableCell className="font-bold text-blue-600">{delivery.erpPoNumber}</TableCell>
-                                <TableCell className="max-w-xs">
-                                  <div className="truncate font-medium" title={delivery.materialName}>
-                                    {delivery.materialName}
-                                  </div>
-                                </TableCell>
-                                <TableCell className="font-medium text-slate-700">{delivery.partyName}</TableCell>
-                                <TableCell className="font-medium text-slate-700">{delivery.truckNumber || '-'}</TableCell>
-                                <TableCell className="font-medium text-slate-700">{delivery.actual1 ? format(delivery.actual1, "dd/MM/yyyy") : '-'}</TableCell>
-                                <TableCell className="text-right font-bold text-slate-900">
-                                  {delivery.qty.toLocaleString()}
-                                </TableCell>
-                              </TableRow>
-                            ))
+                            purchaseTabTables.received
+                              .slice()
+                              .sort(((a, b) => new Date(b.actual1) - new Date(a.actual1)))
+                              .map((delivery) => (
+                                <TableRow key={delivery.id} className="hover:bg-emerald-50/50 border-b border-slate-100 transition-colors duration-200">
+                                  <TableCell className="font-bold text-blue-600">{delivery.erpPoNumber}</TableCell>
+                                  <TableCell className="max-w-xs">
+                                    <div className="truncate font-medium" title={delivery.materialName}>
+                                      {delivery.materialName}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="font-medium text-slate-700">{delivery.partyName}</TableCell>
+                                  <TableCell className="font-medium text-slate-700">{delivery.truckNumber || '-'}</TableCell>
+                                  <TableCell className="font-medium text-slate-700">{delivery.actual1 ? format(delivery.actual1, "dd/MM/yyyy") : '-'}</TableCell>
+                                  <TableCell className="text-right font-bold text-slate-900">
+                                    {delivery.qty.toLocaleString()}
+                                  </TableCell>
+                                </TableRow>
+                              ))
                           ) : (
                             <TableRow>
                               <TableCell colSpan={6} className="text-center h-40 text-slate-500">
