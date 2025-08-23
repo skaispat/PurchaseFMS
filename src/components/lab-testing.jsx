@@ -495,7 +495,7 @@ export default function DeliveryTracking() {
         setAllDeliveryData(processedDeliveryData)
 
         // Fetch LAB data (columns B to T)
-        const labUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(LAB_SHEET_NAME)}&range=B2:T1000&t=${new Date().getTime()}`
+        const labUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(LAB_SHEET_NAME)}&range=B2:T3000&t=${new Date().getTime()}`
 
         const labResponse = await fetch(labUrl)
         if (!labResponse.ok) throw new Error(`Network response was not ok: ${labResponse.statusText}`)
@@ -579,9 +579,36 @@ export default function DeliveryTracking() {
   }, [allDeliveryData])
 
   // History data now comes from LAB sheet
+  // Replace the historyData useMemo with this:
   const historyData = useMemo(() => {
-    return allLabData
-  }, [allLabData])
+    console.log('All Lab Data:', allLabData); // Debug: check what data we have
+
+    // Group by lift number and find the entry with highest testing number
+    const grouped = {};
+
+    allLabData.forEach(item => {
+      if (!item.liftNo || !item.testingNumber) return;
+
+      const liftNo = item.liftNo;
+      const testingNum = parseInt(item.testingNumber) || 0;
+
+      if (!grouped[liftNo] || testingNum > grouped[liftNo].testingNum) {
+        grouped[liftNo] = {
+          ...item,
+          testingNum: testingNum
+        };
+      }
+    });
+
+    // Convert to array and sort by lift number in descending order
+    const result = Object.values(grouped).sort((a, b) => {
+      // Simple string comparison for descending order
+      return b.liftNo.localeCompare(a.liftNo);
+    });
+
+    console.log('Grouped History Data:', result); // Debug: check the final result
+    return result;
+  }, [allLabData]);
 
   // Search functionality
   const filteredPendingData = useMemo(() => {
