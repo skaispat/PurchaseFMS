@@ -200,8 +200,9 @@ export default function LiftMaterial() {
             return cell && cell.v !== null && cell.v !== undefined ? String(cell.v).trim() : ""
           }
 
-          const columnU = getCellValue(20) // Column U (index 20)
-          const columnV = getCellValue(21) // Column V (index 21)
+          const columnS = getCellValue(18)  // Column S (index 18)
+          const columnU = getCellValue(20)  // Column U (index 20)
+          const columnV = getCellValue(21)  // Column V (index 21)
 
           return {
             id: `po-${index + 7}`,
@@ -218,15 +219,21 @@ export default function LiftMaterial() {
             transportingType: getCellValue(10), // Column K
             femPercent: getCellValue(11), // Column L
             yieldPercent: getCellValue(12), // Column M
+            columnS: columnS,  // Store column S value
             columnU: columnU,
             columnV: columnV,
           }
         })
         .filter((row) => row !== null)
 
-      // Filter: Column U not null and Column V null
+      // Updated filter: Exclude rows where column S is "Complete"
       const filteredRows = processedRows.filter(
-        (row) => row.columnU && row.columnU !== "" && (!row.columnV || row.columnV === ""),
+        (row) =>
+          row.columnU &&
+          row.columnU !== "" &&
+          (!row.columnV || row.columnV === "") &&
+          row.columnS !== "Complete" &&
+          row.columnS !== "complete"
       )
 
       setPendingPOs(filteredRows)

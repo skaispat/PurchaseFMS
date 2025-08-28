@@ -151,6 +151,12 @@ const GeneratePO = () => {
     "Semi Finished FMS Billet"
   ]
 
+  useEffect(() => {
+    const storedCancelledOrders = localStorage.getItem('cancelledOrders');
+    if (storedCancelledOrders) {
+      setCancelledOrders(new Set(JSON.parse(storedCancelledOrders)));
+    }
+  }, []);
   // Fetch data from Google Sheets
   useEffect(() => {
     const fetchData = async () => {
@@ -481,8 +487,9 @@ const GeneratePO = () => {
       console.log("Cancel form submission result:", result)
 
       // Add the order to cancelled orders set
-      setCancelledOrders(prev => new Set([...prev, selectedCancelPO.indentNumber]))
-
+      const newCancelledOrders = new Set([...cancelledOrders, selectedCancelPO.indentNumber]);
+      setCancelledOrders(newCancelledOrders);
+      localStorage.setItem('cancelledOrders', JSON.stringify([...newCancelledOrders]));
       closeCancelModal()
       alert("Cancel order request submitted successfully!")
 
