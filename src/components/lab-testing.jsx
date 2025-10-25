@@ -602,8 +602,9 @@ export default function DeliveryTracking() {
 
     // Convert to array and sort by lift number in descending order
     const result = Object.values(grouped).sort((a, b) => {
-      // Simple string comparison for descending order
-      return b.liftNo.localeCompare(a.liftNo);
+      const numA = parseInt(a.liftNo.split("-")[1]) || 0;
+      const numB = parseInt(b.liftNo.split("-")[1]) || 0;
+      return numB - numA; // Descending order
     });
 
     console.log('Grouped History Data:', result); // Debug: check the final result
