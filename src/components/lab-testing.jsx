@@ -424,7 +424,7 @@ export default function DeliveryTracking() {
       setErrorData(null)
       try {
         // Fetch DELIVERY data
-        const deliveryUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(DELIVERY_SHEET_NAME)}&range=A7:AL1000&t=${new Date().getTime()}`
+        const deliveryUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(DELIVERY_SHEET_NAME)}&range=A7:AL2000&t=${new Date().getTime()}`
 
         const deliveryResponse = await fetch(deliveryUrl)
         if (!deliveryResponse.ok) throw new Error(`Network response was not ok: ${deliveryResponse.statusText}`)
