@@ -424,7 +424,7 @@ export default function DeliveryTracking() {
       setErrorData(null)
       try {
         // Fetch DELIVERY data
-        const deliveryUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(DELIVERY_SHEET_NAME)}&range=A7:AL2000&t=${new Date().getTime()}`
+        const deliveryUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(DELIVERY_SHEET_NAME)}&range=A7:AL10000&t=${new Date().getTime()}`
 
         const deliveryResponse = await fetch(deliveryUrl)
         if (!deliveryResponse.ok) throw new Error(`Network response was not ok: ${deliveryResponse.statusText}`)
@@ -495,7 +495,7 @@ export default function DeliveryTracking() {
         setAllDeliveryData(processedDeliveryData)
 
         // Fetch LAB data (columns B to T)
-        const labUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(LAB_SHEET_NAME)}&range=B2:T3000&t=${new Date().getTime()}`
+        const labUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(LAB_SHEET_NAME)}&range=B2:T10000&t=${new Date().getTime()}`
 
         const labResponse = await fetch(labUrl)
         if (!labResponse.ok) throw new Error(`Network response was not ok: ${labResponse.statusText}`)
