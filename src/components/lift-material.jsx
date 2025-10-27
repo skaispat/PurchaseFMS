@@ -252,7 +252,7 @@ export default function LiftMaterial() {
     setLoadingHistory(true)
     setError(null)
     try {
-      const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(DELIVERY_SHEET)}&range=A7:O1000`
+      const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(DELIVERY_SHEET)}&range=A7:100000`
       const response = await fetch(url)
       if (!response.ok) throw new Error(`Failed to fetch delivery data: ${response.status}`)
 
@@ -570,7 +570,7 @@ export default function LiftMaterial() {
       // Prepare DELIVERY sheet data
       const deliveryRowData = [
         timestamp, // Column A
-        "", // Column B
+        liftNo, // Column B
         selectedPO.erpPoNumber, // Column C
         formData.indentNumber, // Column D
         formData.brokerName, // Column E
