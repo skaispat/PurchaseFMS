@@ -570,7 +570,7 @@ export default function LiftMaterial() {
       // Prepare DELIVERY sheet data
       const deliveryRowData = [
         timestamp, // Column A
-        liftNo, // Column B
+        "", // Column B
         selectedPO.erpPoNumber, // Column C
         formData.indentNumber, // Column D
         formData.brokerName, // Column E
