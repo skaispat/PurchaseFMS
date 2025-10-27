@@ -239,7 +239,7 @@ export default function DeliveryManagement() {
 
     try {
       const cacheBuster = new Date().getTime()
-      const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(DELIVERY_SHEET)}&range=A7:AB1000&t=${cacheBuster}`
+      const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(DELIVERY_SHEET)}&range=A7:AB100000&t=${cacheBuster}`
 
       const response = await fetch(url)
       if (!response.ok) throw new Error(`Failed to fetch delivery data: ${response.status}`)
