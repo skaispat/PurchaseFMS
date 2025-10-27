@@ -305,7 +305,7 @@ export default function DeliveryManagement() {
     setError(null)
 
     try {
-      const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(DELIVERY_SHEET)}&range=A7:V1000`
+      const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(DELIVERY_SHEET)}&range=A7:V100000`
       const response = await fetch(url)
       if (!response.ok) throw new Error(`Failed to fetch delivery data: ${response.status}`)
 
