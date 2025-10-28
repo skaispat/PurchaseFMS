@@ -578,20 +578,154 @@ export default function DeliveryManagement() {
     }
   };
 
+  // const handleSubmit = async (e) => {
+  //   if (e) e.preventDefault()
+  //   if (!selectedDelivery) {
+  //     alert("No delivery selected.")
+  //     return
+  //   }
+  //   if (!validateForm()) {
+  //     alert("Please fill all required fields correctly.")
+  //     return
+  //   }
+
+  //   setIsSubmitting(true)
+  //   try {
+  //     const now = new Date()
+  //     const timestamp = now
+  //       .toLocaleString("en-GB", {
+  //         day: "2-digit",
+  //         month: "2-digit",
+  //         year: "numeric",
+  //         hour: "2-digit",
+  //         minute: "2-digit",
+  //         second: "2-digit",
+  //         hour12: false,
+  //       })
+  //       .replace(",", "")
+
+  //     // Upload images if they exist
+  //     let physicalImageUrl = ""
+  //     let weightSlipImageUrl = ""
+
+  //     if (formData.physicalImageOfProduct) {
+  //       console.log("Uploading physical image...")
+  //       setUploadingImages(prev => ({ ...prev, physicalImageOfProduct: true }))
+  //       physicalImageUrl = await uploadFileToDrive(formData.physicalImageOfProduct)
+  //       setUploadingImages(prev => ({ ...prev, physicalImageOfProduct: false }))
+  //     }
+
+  //     if (formData.imageOfWeightSlip) {
+  //       console.log("Uploading weight slip file...")
+  //       setUploadingImages(prev => ({ ...prev, imageOfWeightSlip: true }))
+  //       weightSlipImageUrl = await uploadFileToDrive(formData.imageOfWeightSlip)
+  //       setUploadingImages(prev => ({ ...prev, imageOfWeightSlip: false }))
+  //     }
+
+  //     console.log("File uploads completed:", {
+  //       physicalImageUrl,
+  //       weightSlipImageUrl
+  //     })
+
+  //     // Prepare update data for the existing row
+  //     const updateRowData = Array(22).fill("") // Assuming 22 columns (A to V)
+
+  //     // Keep existing data and update specific columns
+  //     updateRowData[16] = timestamp // Column Q - Actual 1 (timestamp)
+  //     updateRowData[18] = formData.physicalCondition // Column S - Physical Condition
+  //     updateRowData[19] = formData.qtyDifference // Column T - Qty Difference
+  //     updateRowData[20] = physicalImageUrl // Column U - Physical Image Of Product
+  //     updateRowData[21] = weightSlipImageUrl // Column V - Image Of Weight Slip
+
+  //     console.log("Updating sheet with data:", updateRowData)
+
+  //     // Use direct iframe approach for fastest submission
+  //     const iframe = document.createElement('iframe')
+  //     iframe.style.display = 'none'
+  //     iframe.name = 'hiddenFrame'
+  //     document.body.appendChild(iframe)
+
+  //     const form = document.createElement('form')
+  //     form.method = 'POST'
+  //     form.action = SKA_API_URL
+  //     form.target = 'hiddenFrame'
+  //     form.style.display = 'none'
+
+  //     // Add form fields
+  //     const actionField = document.createElement('input')
+  //     actionField.type = 'hidden'
+  //     actionField.name = 'action'
+  //     actionField.value = 'update'
+  //     form.appendChild(actionField)
+
+  //     const sheetField = document.createElement('input')
+  //     sheetField.type = 'hidden'
+  //     sheetField.name = 'sheetName'
+  //     sheetField.value = DELIVERY_SHEET
+  //     form.appendChild(sheetField)
+
+  //     const rowField = document.createElement('input')
+  //     rowField.type = 'hidden'
+  //     rowField.name = 'rowIndex'
+  //     rowField.value = selectedDelivery.rowIndex
+  //     form.appendChild(rowField)
+
+  //     const dataField = document.createElement('input')
+  //     dataField.type = 'hidden'
+  //     dataField.name = 'rowData'
+  //     dataField.value = JSON.stringify(updateRowData)
+  //     form.appendChild(dataField)
+
+  //     // Submit form
+  //     document.body.appendChild(form)
+  //     form.submit()
+
+  //     // Clean up
+  //     setTimeout(() => {
+  //       if (document.body.contains(form)) document.body.removeChild(form)
+  //       if (document.body.contains(iframe)) document.body.removeChild(iframe)
+  //     }, 500)
+
+  //     // Show success immediately and close popup
+  //     setTimeout(() => {
+  //       handleClosePopup()
+  //       alert(`Receipt recorded successfully for ${selectedDelivery.liftNo}.`)
+
+  //       // Force refresh data and switch to history tab
+  //       setLoadingPending(true)
+  //       setLoadingHistory(true)
+  //       fetchDeliveryData().then(() => {
+  //         setActiveTab("history")
+  //       })
+  //     }, 1500)
+
+  //   } catch (error) {
+  //     console.error("Error submitting form:", error)
+  //     alert(`Error: ${error.message}`)
+  //   } finally {
+  //     setIsSubmitting(false)
+  //     setUploadingImages({
+  //       physicalImageOfProduct: false,
+  //       imageOfWeightSlip: false
+  //     })
+  //   }
+  // }
+
+
   const handleSubmit = async (e) => {
-    if (e) e.preventDefault()
+    if (e) e.preventDefault();
     if (!selectedDelivery) {
-      alert("No delivery selected.")
-      return
+      alert("No delivery selected.");
+      return;
     }
     if (!validateForm()) {
-      alert("Please fill all required fields correctly.")
-      return
+      alert("Please fill all required fields correctly.");
+      return;
     }
 
-    setIsSubmitting(true)
+    setIsSubmitting(true);
     try {
-      const now = new Date()
+      const now = new Date();
       const timestamp = now
         .toLocaleString("en-GB", {
           day: "2-digit",
@@ -602,115 +736,90 @@ export default function DeliveryManagement() {
           second: "2-digit",
           hour12: false,
         })
-        .replace(",", "")
+        .replace(",", "");
 
       // Upload images if they exist
-      let physicalImageUrl = ""
-      let weightSlipImageUrl = ""
+      let physicalImageUrl = "";
+      let weightSlipImageUrl = "";
 
       if (formData.physicalImageOfProduct) {
-        console.log("Uploading physical image...")
-        setUploadingImages(prev => ({ ...prev, physicalImageOfProduct: true }))
-        physicalImageUrl = await uploadFileToDrive(formData.physicalImageOfProduct)
-        setUploadingImages(prev => ({ ...prev, physicalImageOfProduct: false }))
+        setUploadingImages((prev) => ({
+          ...prev,
+          physicalImageOfProduct: true,
+        }));
+        physicalImageUrl = await uploadFileToDrive(
+          formData.physicalImageOfProduct
+        );
+        setUploadingImages((prev) => ({
+          ...prev,
+          physicalImageOfProduct: false,
+        }));
       }
 
       if (formData.imageOfWeightSlip) {
-        console.log("Uploading weight slip file...")
-        setUploadingImages(prev => ({ ...prev, imageOfWeightSlip: true }))
-        weightSlipImageUrl = await uploadFileToDrive(formData.imageOfWeightSlip)
-        setUploadingImages(prev => ({ ...prev, imageOfWeightSlip: false }))
+        setUploadingImages((prev) => ({ ...prev, imageOfWeightSlip: true }));
+        weightSlipImageUrl = await uploadFileToDrive(
+          formData.imageOfWeightSlip
+        );
+        setUploadingImages((prev) => ({ ...prev, imageOfWeightSlip: false }));
       }
 
-      console.log("File uploads completed:", {
-        physicalImageUrl,
-        weightSlipImageUrl
-      })
-
       // Prepare update data for the existing row
-      const updateRowData = Array(22).fill("") // Assuming 22 columns (A to V)
+      const updateRowData = Array(22).fill(""); // Assuming 22 columns (A to V)
 
       // Keep existing data and update specific columns
-      updateRowData[16] = timestamp // Column Q - Actual 1 (timestamp)
-      updateRowData[18] = formData.physicalCondition // Column S - Physical Condition
-      updateRowData[19] = formData.qtyDifference // Column T - Qty Difference
-      updateRowData[20] = physicalImageUrl // Column U - Physical Image Of Product
-      updateRowData[21] = weightSlipImageUrl // Column V - Image Of Weight Slip
+      updateRowData[16] = timestamp; // Column Q - Actual 1 (timestamp)
+      updateRowData[18] = formData.physicalCondition; // Column S - Physical Condition
+      updateRowData[19] = formData.qtyDifference; // Column T - Qty Difference
+      updateRowData[20] = physicalImageUrl; // Column U - Physical Image Of Product
+      updateRowData[21] = weightSlipImageUrl; // Column V - Image Of Weight Slip
 
-      console.log("Updating sheet with data:", updateRowData)
+      // Use proper fetch with async/await
+      const response = await fetch(SKA_API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          action: "update",
+          sheetName: DELIVERY_SHEET,
+          rowIndex: selectedDelivery.rowIndex,
+          rowData: JSON.stringify(updateRowData),
+        }),
+      });
 
-      // Use direct iframe approach for fastest submission
-      const iframe = document.createElement('iframe')
-      iframe.style.display = 'none'
-      iframe.name = 'hiddenFrame'
-      document.body.appendChild(iframe)
+      if (!response.ok) {
+        throw new Error(`Failed to update row: ${response.status}`);
+      }
 
-      const form = document.createElement('form')
-      form.method = 'POST'
-      form.action = SKA_API_URL
-      form.target = 'hiddenFrame'
-      form.style.display = 'none'
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.message || "Failed to update delivery");
+      }
 
-      // Add form fields
-      const actionField = document.createElement('input')
-      actionField.type = 'hidden'
-      actionField.name = 'action'
-      actionField.value = 'update'
-      form.appendChild(actionField)
+      // Show success and close popup
+      handleClosePopup();
+      alert(`Receipt recorded successfully for ${selectedDelivery.liftNo}.`);
 
-      const sheetField = document.createElement('input')
-      sheetField.type = 'hidden'
-      sheetField.name = 'sheetName'
-      sheetField.value = DELIVERY_SHEET
-      form.appendChild(sheetField)
-
-      const rowField = document.createElement('input')
-      rowField.type = 'hidden'
-      rowField.name = 'rowIndex'
-      rowField.value = selectedDelivery.rowIndex
-      form.appendChild(rowField)
-
-      const dataField = document.createElement('input')
-      dataField.type = 'hidden'
-      dataField.name = 'rowData'
-      dataField.value = JSON.stringify(updateRowData)
-      form.appendChild(dataField)
-
-      // Submit form
-      document.body.appendChild(form)
-      form.submit()
-
-      // Clean up
-      setTimeout(() => {
-        if (document.body.contains(form)) document.body.removeChild(form)
-        if (document.body.contains(iframe)) document.body.removeChild(iframe)
-      }, 500)
-
-      // Show success immediately and close popup
-      setTimeout(() => {
-        handleClosePopup()
-        alert(`Receipt recorded successfully for ${selectedDelivery.liftNo}.`)
-
-        // Force refresh data and switch to history tab
-        setLoadingPending(true)
-        setLoadingHistory(true)
-        fetchDeliveryData().then(() => {
-          setActiveTab("history")
-        })
-      }, 1500)
-
+      // Force refresh data and switch to history tab
+      setLoadingPending(true);
+      setLoadingHistory(true);
+      fetchDeliveryData().then(() => {
+        setActiveTab("history");
+      });
     } catch (error) {
-      console.error("Error submitting form:", error)
-      alert(`Error: ${error.message}`)
+      console.error("Error submitting form:", error);
+      alert(`Error: ${error.message}`);
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
       setUploadingImages({
         physicalImageOfProduct: false,
-        imageOfWeightSlip: false
-      })
+        imageOfWeightSlip: false,
+      });
     }
-  }
+  };
 
+  
   const handleReturnSubmit = async (e) => {
     if (e) e.preventDefault()
     if (!selectedDelivery) {
