@@ -400,6 +400,7 @@ export default function DeliveryManagement() {
     };
   }, []);
 
+  // FIXED: Improved data fetching with better error handling and logging
   const fetchDeliveryData = useCallback(async () => {
     setLoadingPending(true)
     setLoadingHistory(true)
@@ -409,10 +410,15 @@ export default function DeliveryManagement() {
       const cacheBuster = new Date().getTime()
       const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(DELIVERY_SHEET)}&t=${cacheBuster}`
 
+      console.log('Fetching data from:', url)
+
       const response = await fetch(url)
       if (!response.ok) throw new Error(`Failed to fetch delivery data: ${response.status}`)
 
       let text = await response.text()
+      console.log('Raw response received')
+
+      // Clean the response text
       if (text.startsWith("google.visualization.Query.setResponse(")) {
         text = text.substring(text.indexOf("(") + 1, text.lastIndexOf(")"))
       } else {
@@ -423,18 +429,28 @@ export default function DeliveryManagement() {
       }
 
       const data = JSON.parse(text)
+      console.log('Parsed data structure:', data)
+
       if (!data.table || !data.table.rows) {
+        console.log('No rows found in data')
         setPendingDeliveries([])
         setHistoryDeliveries([])
         return
       }
 
+      console.log('Total rows found:', data.table.rows.length)
+
       const processedRows = data.table.rows
         .map((row, index) => {
-          if (!row || !row.c) return null
+          if (!row || !row.c) {
+            console.log(`Skipping row ${index}: no data`)
+            return null
+          }
 
+          // Get cell value with better handling
           const getCellValue = (cellIndex) => {
-            const cell = row.c && row.c[cellIndex]
+            if (!row.c || cellIndex >= row.c.length) return ""
+            const cell = row.c[cellIndex]
             if (!cell) return ""
 
             // Use formatted value if available, otherwise use raw value
@@ -442,9 +458,27 @@ export default function DeliveryManagement() {
             return value !== null && value !== undefined ? String(value).trim() : ""
           }
 
-          return {
-            id: `delivery-${index + 7}`,
-            rowIndex: index + 7,
+          // Skip empty rows
+          const liftNo = getCellValue(1)
+          const erpPoNumber = getCellValue(2)
+          const brokerName = getCellValue(4)
+          
+          if (!liftNo && !erpPoNumber && !brokerName) {
+            console.log(`Skipping row ${index}: empty data`)
+            return null
+          }
+
+          // Skip header rows based on content (check first few columns for header-like content)
+          const firstCell = getCellValue(0).toLowerCase()
+          const secondCell = getCellValue(1).toLowerCase()
+          if (firstCell.includes('receipt') || secondCell.includes('lift') || secondCell.includes('actual')) {
+            console.log(`Skipping row ${index}: header row`)
+            return null
+          }
+
+          const rowData = {
+            id: `delivery-${index}`,
+            rowIndex: index + 1, // Google Sheets rows are 1-indexed
             liftNo: getCellValue(1), // Column B
             erpPoNumber: getCellValue(2), // Column C
             indentNumber: getCellValue(3), // Column D
@@ -467,10 +501,26 @@ export default function DeliveryManagement() {
             timestamp: getCellValue(29), // Column AD
             status: getCellValue(31), // Column AF
             remarks: getCellValue(32), // Column AG
-            rawCells: row.c ? row.c.map((cell) => (cell ? (cell.f ?? cell.v) : "")) : [],
+            rawCells: row.c ? row.c.map((cell, idx) => ({
+              index: idx,
+              value: cell ? (cell.f ?? cell.v) : "",
+              formatted: cell ? cell.f : "",
+              raw: cell ? cell.v : ""
+            })) : [],
           }
+
+          console.log(`Processed row ${index}:`, { 
+            liftNo: rowData.liftNo, 
+            planned: rowData.planned,
+            timestamp: rowData.timestamp,
+            status: rowData.status
+          })
+
+          return rowData
         })
         .filter((row) => row !== null)
+
+      console.log('Total processed rows:', processedRows.length)
 
       // Filter for Pending: Column AC not null and Column AD null
       const pendingRows = processedRows.filter(
@@ -481,6 +531,9 @@ export default function DeliveryManagement() {
       const historyRows = processedRows.filter(
         (row) => row.planned && row.planned !== "" && row.timestamp && row.timestamp !== "",
       )
+
+      console.log('Pending rows:', pendingRows.length)
+      console.log('History rows:', historyRows.length)
 
       setPendingDeliveries(pendingRows)
       setHistoryDeliveries(historyRows.reverse()) // Show latest first
@@ -541,11 +594,11 @@ export default function DeliveryManagement() {
   const handleReceiptClick = (delivery) => {
     setSelectedDelivery(delivery)
     setFormData({
-      liftNo: delivery.liftNo,
-      erpPoNumber: delivery.erpPoNumber,
-      brokerName: delivery.brokerName,
-      partyName: delivery.partyName,
-      materialName: delivery.materialName,
+      liftNo: delivery.liftNo || "",
+      erpPoNumber: delivery.erpPoNumber || "",
+      brokerName: delivery.brokerName || "",
+      partyName: delivery.partyName || "",
+      materialName: delivery.materialName || "",
       status: "",
       remarks: "",
     })
@@ -613,32 +666,33 @@ export default function DeliveryManagement() {
       const now = new Date()
       const timestamp = `${now.getDate().toString().padStart(2, "0")}/${(now.getMonth() + 1).toString().padStart(2, "0")}/${now.getFullYear()} ${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}:${now.getSeconds().toString().padStart(2, "0")}`
 
-      // Prepare update data for the existing row
-      const updateRowData = [...selectedDelivery.rawCells]
+      // Prepare update data
+      const updateRowData = Array(33).fill("") // Create empty array for all columns
 
-      // Ensure array has enough elements
-      while (updateRowData.length < 33) {
-        updateRowData.push("")
-      }
+      // Copy existing data
+      selectedDelivery.rawCells.forEach((cell, index) => {
+        if (cell && index < updateRowData.length) {
+          updateRowData[index] = cell.value || ""
+        }
+      })
 
       // Update specific columns
       updateRowData[29] = timestamp // Column AD - Time stamp
       updateRowData[31] = formData.status // Column AF - Status
       updateRowData[32] = formData.remarks // Column AG - Remarks
-      updateRowData[15] = ""; // Column P (16)
-      updateRowData[28] = ""; // Column P (16)
-      updateRowData[22] = ""; // Column P (16)
-      updateRowData[30] = ""; // Column P (16)
-      updateRowData[33] = ""; // Column P (16)
+
+const updateParams = new URLSearchParams({
+  action: "updateByLiftNo",
+  sheetName: DELIVERY_SHEET,
+  liftNo: selectedDelivery.liftNo, // 👈 use lift number instead of rowIndex
+  rowData: JSON.stringify(updateRowData),
+});
 
 
+// console.log("Updating row number:", rowIndex);
 
-      const updateParams = new URLSearchParams({
-        action: "update",
-        sheetName: DELIVERY_SHEET,
-        rowIndex: selectedDelivery.rowIndex,
-        rowData: JSON.stringify(updateRowData),
-      })
+
+      console.log('Updating row:', selectedDelivery.rowIndex, updateRowData)
 
       const response = await fetch(API_URL, {
         method: "POST",
@@ -648,11 +702,8 @@ export default function DeliveryManagement() {
 
       if (!response.ok) throw new Error(`Update failed: ${response.status}`)
 
-      // For opaque responses, assume success
-      if (response.type !== "opaque") {
-        const result = await response.json()
-        if (!result.success) throw new Error(result.message || "Failed to update delivery record")
-      }
+      const result = await response.json()
+      if (!result.success) throw new Error(result.message || "Failed to update delivery record")
 
       // Refresh data
       await fetchDeliveryData()
@@ -709,34 +760,45 @@ export default function DeliveryManagement() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data.map((item) => (
-            <TableRow key={item.id} className="hover:bg-muted/30">
-              {PENDING_COLUMNS_META.filter(col => visiblePendingColumns[col.dataKey]).map((column) => (
-                <TableCell key={column.dataKey} className={column.dataKey === "liftNo" ? "font-medium text-primary" : ""}>
-                  {column.dataKey === "actionColumn" ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleReceiptClick(item)}
-                      className="h-8 px-3 py-1 text-xs"
-                    >
-                      Receipt
-                    </Button>
-                  ) : column.dataKey === "billImage" || column.dataKey === "physicalImageOfProduct" || column.dataKey === "imageOfWeightSlip" ? (
-                    renderLinkCell(item[column.dataKey])
-                  ) : column.dataKey === "outTime" ? (
-                    renderCell(formatTimeTo12Hour(item[column.dataKey]))
-                  ) : column.dataKey === "vehicleOutDate" ? (
-                    renderCell(formatDateToDDMMYYYY(item[column.dataKey]))
-                  ) : column.dataKey === "planned" ? (
-                    renderCell(formatPlannedDate(item[column.dataKey]))
-                  ) : (
-                    renderCell(item[column.dataKey])
-                  )}
-                </TableCell>
-              ))}
+          {data.length === 0 ? (
+            <TableRow>
+              <TableCell 
+                colSpan={PENDING_COLUMNS_META.filter(col => visiblePendingColumns[col.dataKey]).length}
+                className="text-center py-8 text-muted-foreground"
+              >
+                No pending deliveries found
+              </TableCell>
             </TableRow>
-          ))}
+          ) : (
+            data.map((item) => (
+              <TableRow key={item.id} className="hover:bg-muted/30">
+                {PENDING_COLUMNS_META.filter(col => visiblePendingColumns[col.dataKey]).map((column) => (
+                  <TableCell key={column.dataKey} className={column.dataKey === "liftNo" ? "font-medium text-primary" : ""}>
+                    {column.dataKey === "actionColumn" ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleReceiptClick(item)}
+                        className="h-8 px-3 py-1 text-xs"
+                      >
+                        Receipt
+                      </Button>
+                    ) : column.dataKey === "billImage" || column.dataKey === "physicalImageOfProduct" || column.dataKey === "imageOfWeightSlip" ? (
+                      renderLinkCell(item[column.dataKey])
+                    ) : column.dataKey === "outTime" ? (
+                      renderCell(formatTimeTo12Hour(item[column.dataKey]))
+                    ) : column.dataKey === "vehicleOutDate" ? (
+                      renderCell(formatDateToDDMMYYYY(item[column.dataKey]))
+                    ) : column.dataKey === "planned" ? (
+                      renderCell(formatPlannedDate(item[column.dataKey]))
+                    ) : (
+                      renderCell(item[column.dataKey])
+                    )}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))
+          )}
         </TableBody>
       </Table>
     </div>
@@ -755,27 +817,38 @@ export default function DeliveryManagement() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data.map((item) => (
-            <TableRow key={item.id} className="hover:bg-muted/30">
-              {HISTORY_COLUMNS_META.filter(col => visibleHistoryColumns[col.dataKey]).map((column) => (
-                <TableCell key={column.dataKey} className={column.dataKey === "liftNo" ? "font-medium text-primary" : ""}>
-                  {column.dataKey === "outTime" ? (
-                    renderCell(formatTimeTo12Hour(item[column.dataKey]))
-                  ) : column.dataKey === "vehicleOutDate" ? (
-                    renderCell(formatDateToDDMMYYYY(item[column.dataKey]))
-                  ) : column.dataKey === "timestamp" ? (
-                    <div className="text-sm">
-                      <div className="flex flex-col">
-                        <span className="font-medium">{renderCell(formatTimestamp(item[column.dataKey]))}</span>
-                      </div>
-                    </div>
-                  ) : (
-                    renderCell(item[column.dataKey])
-                  )}
-                </TableCell>
-              ))}
+          {data.length === 0 ? (
+            <TableRow>
+              <TableCell 
+                colSpan={HISTORY_COLUMNS_META.filter(col => visibleHistoryColumns[col.dataKey]).length}
+                className="text-center py-8 text-muted-foreground"
+              >
+                No delivery history found
+              </TableCell>
             </TableRow>
-          ))}
+          ) : (
+            data.map((item) => (
+              <TableRow key={item.id} className="hover:bg-muted/30">
+                {HISTORY_COLUMNS_META.filter(col => visibleHistoryColumns[col.dataKey]).map((column) => (
+                  <TableCell key={column.dataKey} className={column.dataKey === "liftNo" ? "font-medium text-primary" : ""}>
+                    {column.dataKey === "outTime" ? (
+                      renderCell(formatTimeTo12Hour(item[column.dataKey]))
+                    ) : column.dataKey === "vehicleOutDate" ? (
+                      renderCell(formatDateToDDMMYYYY(item[column.dataKey]))
+                    ) : column.dataKey === "timestamp" ? (
+                      <div className="text-sm">
+                        <div className="flex flex-col">
+                          <span className="font-medium">{renderCell(formatTimestamp(item[column.dataKey]))}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      renderCell(item[column.dataKey])
+                    )}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))
+          )}
         </TableBody>
       </Table>
     </div>
@@ -1208,3 +1281,5 @@ export default function DeliveryManagement() {
     </div>
   )
 }
+
+
